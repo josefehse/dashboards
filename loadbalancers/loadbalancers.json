@@ -1,0 +1,681 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Load Balancer Configuration Dashboard\r\n\r\nThis workbook provides a comprehensive view of all Load Balancers in your Azure subscription, including their configuration and related components."
+      },
+      "name": "text - header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "resource-group-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroup",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup, selected = false",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters - filters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Load Balancer Overview"
+      },
+      "name": "text - overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where resourceGroup in ({ResourceGroup})\r\n| extend SKU = properties.sku.name\r\n| extend Tier = properties.sku.tier\r\n| extend ProvisioningState = properties.provisioningState\r\n| extend FrontendIPCount = array_length(properties.frontendIPConfigurations)\r\n| extend BackendPools = array_length(properties.backendAddressPools)\r\n| extend LoadBalancingRules = array_length(properties.loadBalancingRules)\r\n| extend HealthProbes = array_length(properties.probes)\r\n| extend InboundNATRules = array_length(properties.inboundNatRules)\r\n| extend OutboundRules = array_length(properties.outboundRules)\r\n| project Name = name, ResourceGroup = resourceGroup, Location = location, SKU, Tier, ProvisioningState, ['Frontend IPs'] = FrontendIPCount, ['Backend Pools'] = BackendPools, ['LB Rules'] = LoadBalancingRules, ['Health Probes'] = HealthProbes, ['NAT Rules'] = InboundNATRules, ['Outbound Rules'] = OutboundRules, id",
+        "size": 0,
+        "title": "Load Balancers",
+        "noDataMessage": "No Load Balancers found in the selected subscription(s) and resource group(s)",
+        "exportedParameters": [
+          {
+            "fieldName": "id",
+            "parameterName": "SelectedLoadBalancer",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "Name",
+            "parameterName": "SelectedLoadBalancerName",
+            "parameterType": 1
+          }
+        ],
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "ProvisioningState",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Failed",
+                    "representation": "red",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "id",
+              "formatter": 5
+            }
+          ],
+          "rowLimit": 1000,
+          "filter": true,
+          "labelSettings": [
+            {
+              "columnId": "Name",
+              "label": "Load Balancer"
+            },
+            {
+              "columnId": "ResourceGroup",
+              "label": "Resource Group"
+            },
+            {
+              "columnId": "ProvisioningState",
+              "label": "Provisioning State"
+            },
+            {
+              "columnId": "Frontend IPs",
+              "label": "Frontend IPs"
+            },
+            {
+              "columnId": "Backend Pools",
+              "label": "Backend Pools"
+            },
+            {
+              "columnId": "LB Rules",
+              "label": "LB Rules"
+            },
+            {
+              "columnId": "Health Probes",
+              "label": "Health Probes"
+            },
+            {
+              "columnId": "NAT Rules",
+              "label": "Inbound NAT Rules"
+            },
+            {
+              "columnId": "Outbound Rules",
+              "label": "Outbound Rules"
+            }
+          ]
+        }
+      },
+      "name": "query - load balancers"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Detailed Configuration\r\n\r\n**Selected Load Balancer:** {SelectedLoadBalancerName}\r\n\r\nSelect a Load Balancer from the table above to view detailed configuration."
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedLoadBalancer",
+        "comparison": "isNotEqualTo"
+      },
+      "name": "text - detailed config"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-basic",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Basic Configuration",
+            "subTarget": "basic",
+            "preText": "",
+            "style": "link"
+          },
+          {
+            "id": "tab-frontend",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Frontend IPs",
+            "subTarget": "frontend",
+            "style": "link"
+          },
+          {
+            "id": "tab-backend",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Backend Pools",
+            "subTarget": "backend",
+            "style": "link"
+          },
+          {
+            "id": "tab-probes",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Health Probes",
+            "subTarget": "probes",
+            "style": "link"
+          },
+          {
+            "id": "tab-rules",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "LB Rules",
+            "subTarget": "rules",
+            "style": "link"
+          },
+          {
+            "id": "tab-nat",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "NAT Rules",
+            "subTarget": "nat",
+            "style": "link"
+          },
+          {
+            "id": "tab-outbound",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Outbound Rules",
+            "subTarget": "outbound",
+            "style": "link"
+          },
+          {
+            "id": "tab-metrics",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Metrics",
+            "subTarget": "metrics",
+            "style": "link"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedLoadBalancer",
+        "comparison": "isNotEqualTo"
+      },
+      "name": "links - tabs"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| project Configuration = 'General', ['SKU Name'] = properties.sku.name, ['SKU Tier'] = properties.sku.tier, ['Provisioning State'] = properties.provisioningState\r\n| union (Resources\r\n  | where type == \"microsoft.network/loadbalancers\"\r\n  | where id == \"{SelectedLoadBalancer}\"\r\n  | project Configuration = 'Counts', ['Frontend IPs'] = array_length(properties.frontendIPConfigurations), ['Backend Pools'] = array_length(properties.backendAddressPools), ['Load Balancing Rules'] = array_length(properties.loadBalancingRules), ['Health Probes'] = array_length(properties.probes))\r\n| union (Resources\r\n  | where type == \"microsoft.network/loadbalancers\"\r\n  | where id == \"{SelectedLoadBalancer}\"\r\n  | project Configuration = 'NAT', ['Inbound NAT Rules'] = array_length(properties.inboundNatRules), ['Inbound NAT Pools'] = array_length(properties.inboundNatPools), ['Outbound Rules'] = array_length(properties.outboundRules))",
+        "size": 0,
+        "title": "Basic Configuration",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Configuration",
+              "formatter": 1
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "basic"
+      },
+      "name": "query - basic config"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand frontendIP = properties.frontendIPConfigurations\r\n| extend FrontendName = tostring(frontendIP.name)\r\n| extend PrivateIP = tostring(frontendIP.properties.privateIPAddress)\r\n| extend PrivateIPAllocation = tostring(frontendIP.properties.privateIPAllocationMethod)\r\n| extend PublicIPId = tostring(frontendIP.properties.publicIPAddress.id)\r\n| extend PublicIPName = split(PublicIPId, '/')[-1]\r\n| extend SubnetId = tostring(frontendIP.properties.subnet.id)\r\n| extend SubnetName = split(SubnetId, '/')[-1]\r\n| extend Zone = tostring(frontendIP.zones)\r\n| extend ProvisioningState = tostring(frontendIP.properties.provisioningState)\r\n| project ['Frontend IP'] = FrontendName, ['Private IP'] = PrivateIP, ['Private IP Allocation'] = PrivateIPAllocation, ['Public IP'] = PublicIPName, ['Subnet'] = SubnetName, ['Zone'] = Zone, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Frontend IP Configurations",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "frontend"
+      },
+      "name": "query - frontend ips"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend PoolName = tostring(backendPool.name)\r\n| extend ProvisioningState = tostring(backendPool.properties.provisioningState)\r\n| extend LoadBalancerBackendAddresses = backendPool.properties.loadBalancerBackendAddresses\r\n| extend BackendIPConfigs = backendPool.properties.backendIPConfigurations\r\n| extend AddressCount = coalesce(array_length(LoadBalancerBackendAddresses), 0)\r\n| extend IPConfigCount = coalesce(array_length(BackendIPConfigs), 0)\r\n| mv-expand address = LoadBalancerBackendAddresses\r\n| extend IPAddress = tostring(address.properties.ipAddress)\r\n| extend VMName = tostring(split(address.properties.networkInterfaceIPConfiguration.id, '/')[-3])\r\n| extend Target = coalesce(IPAddress, VMName, '')\r\n| summarize Targets = make_list(Target) by PoolName, AddressCount, IPConfigCount, ProvisioningState\r\n| extend TargetsDisplay = iff(array_length(Targets) > 0 and Targets[0] != '', strcat_array(Targets, ', '), 'No targets configured')\r\n| project ['Backend Pool'] = PoolName, ['Address Count'] = AddressCount, ['IP Config Count'] = IPConfigCount, ['Total Targets'] = AddressCount + IPConfigCount, ['Targets'] = TargetsDisplay, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Backend Address Pools",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "backend"
+      },
+      "name": "query - backend pools"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand probe = properties.probes\r\n| extend ProbeName = tostring(probe.name)\r\n| extend Protocol = tostring(probe.properties.protocol)\r\n| extend Port = tostring(probe.properties.port)\r\n| extend IntervalInSeconds = tostring(probe.properties.intervalInSeconds)\r\n| extend NumberOfProbes = tostring(probe.properties.numberOfProbes)\r\n| extend RequestPath = tostring(probe.properties.requestPath)\r\n| extend ProvisioningState = tostring(probe.properties.provisioningState)\r\n| project ['Health Probe'] = ProbeName, Protocol, Port, ['Request Path'] = RequestPath, ['Interval (s)'] = IntervalInSeconds, ['Number of Probes'] = NumberOfProbes, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Health Probes",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "probes"
+      },
+      "name": "query - health probes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand rule = properties.loadBalancingRules\r\n| extend RuleName = tostring(rule.name)\r\n| extend Protocol = tostring(rule.properties.protocol)\r\n| extend FrontendPort = tostring(rule.properties.frontendPort)\r\n| extend BackendPort = tostring(rule.properties.backendPort)\r\n| extend EnableFloatingIP = tostring(rule.properties.enableFloatingIP)\r\n| extend EnableTcpReset = tostring(rule.properties.enableTcpReset)\r\n| extend IdleTimeoutInMinutes = tostring(rule.properties.idleTimeoutInMinutes)\r\n| extend LoadDistribution = tostring(rule.properties.loadDistribution)\r\n| extend FrontendIPConfig = split(rule.properties.frontendIPConfiguration.id, '/')[-1]\r\n| extend BackendPool = split(rule.properties.backendAddressPool.id, '/')[-1]\r\n| extend Probe = split(rule.properties.probe.id, '/')[-1]\r\n| extend ProvisioningState = tostring(rule.properties.provisioningState)\r\n| project ['Rule'] = RuleName, Protocol, ['Frontend Port'] = FrontendPort, ['Backend Port'] = BackendPort, ['Frontend IP'] = FrontendIPConfig, ['Backend Pool'] = BackendPool, ['Health Probe'] = Probe, ['Load Distribution'] = LoadDistribution, ['Floating IP'] = EnableFloatingIP, ['TCP Reset'] = EnableTcpReset, ['Idle Timeout (min)'] = IdleTimeoutInMinutes, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Load Balancing Rules",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "rules"
+      },
+      "name": "query - lb rules"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand natRule = properties.inboundNatRules\r\n| extend RuleName = tostring(natRule.name)\r\n| extend Protocol = tostring(natRule.properties.protocol)\r\n| extend FrontendPort = tostring(natRule.properties.frontendPort)\r\n| extend BackendPort = tostring(natRule.properties.backendPort)\r\n| extend EnableFloatingIP = tostring(natRule.properties.enableFloatingIP)\r\n| extend EnableTcpReset = tostring(natRule.properties.enableTcpReset)\r\n| extend IdleTimeoutInMinutes = tostring(natRule.properties.idleTimeoutInMinutes)\r\n| extend FrontendIPConfig = split(natRule.properties.frontendIPConfiguration.id, '/')[-1]\r\n| extend BackendIPConfig = split(natRule.properties.backendIPConfiguration.id, '/')[-3]\r\n| extend ProvisioningState = tostring(natRule.properties.provisioningState)\r\n| project ['NAT Rule'] = RuleName, Protocol, ['Frontend Port'] = FrontendPort, ['Backend Port'] = BackendPort, ['Frontend IP'] = FrontendIPConfig, ['Target VM'] = BackendIPConfig, ['Floating IP'] = EnableFloatingIP, ['TCP Reset'] = EnableTcpReset, ['Idle Timeout (min)'] = IdleTimeoutInMinutes, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Inbound NAT Rules",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "nat"
+      },
+      "name": "query - nat rules"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand outboundRule = properties.outboundRules\r\n| extend RuleName = tostring(outboundRule.name)\r\n| extend Protocol = tostring(outboundRule.properties.protocol)\r\n| extend AllocatedOutboundPorts = tostring(outboundRule.properties.allocatedOutboundPorts)\r\n| extend IdleTimeoutInMinutes = tostring(outboundRule.properties.idleTimeoutInMinutes)\r\n| extend EnableTcpReset = tostring(outboundRule.properties.enableTcpReset)\r\n| extend FrontendIPConfigs = array_length(outboundRule.properties.frontendIPConfigurations)\r\n| extend BackendPool = split(outboundRule.properties.backendAddressPool.id, '/')[-1]\r\n| extend ProvisioningState = tostring(outboundRule.properties.provisioningState)\r\n| project ['Outbound Rule'] = RuleName, Protocol, ['Allocated Outbound Ports'] = AllocatedOutboundPorts, ['Frontend IP Configs'] = FrontendIPConfigs, ['Backend Pool'] = BackendPool, ['TCP Reset'] = EnableTcpReset, ['Idle Timeout (min)'] = IdleTimeoutInMinutes, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Outbound Rules",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "outbound"
+      },
+      "name": "query - outbound rules"
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "workbook-data-path-availability",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.network/loadbalancers",
+        "metricScope": 0,
+        "resourceParameter": "SelectedLoadBalancer",
+        "resourceIds": [
+          "{SelectedLoadBalancer}"
+        ],
+        "timeContext": {
+          "durationMs": 3600000
+        },
+        "metrics": [
+          {
+            "namespace": "microsoft.network/loadbalancers",
+            "metric": "microsoft.network/loadbalancers--VipAvailability",
+            "aggregation": 4
+          }
+        ],
+        "title": "Data Path Availability (Last Hour)",
+        "gridSettings": {
+          "rowLimit": 10000
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "metrics"
+      },
+      "name": "metric - data path"
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "workbook-health-probe-status",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.network/loadbalancers",
+        "metricScope": 0,
+        "resourceParameter": "SelectedLoadBalancer",
+        "resourceIds": [
+          "{SelectedLoadBalancer}"
+        ],
+        "timeContext": {
+          "durationMs": 3600000
+        },
+        "metrics": [
+          {
+            "namespace": "microsoft.network/loadbalancers",
+            "metric": "microsoft.network/loadbalancers--DipAvailability",
+            "aggregation": 4,
+            "splitBy": [
+              "BackendIPAddress"
+            ]
+          }
+        ],
+        "title": "Health Probe Status by Backend (Last Hour)",
+        "gridSettings": {
+          "rowLimit": 10000
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "metrics"
+      },
+      "name": "metric - health probe"
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "workbook-throughput",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.network/loadbalancers",
+        "metricScope": 0,
+        "resourceParameter": "SelectedLoadBalancer",
+        "resourceIds": [
+          "{SelectedLoadBalancer}"
+        ],
+        "timeContext": {
+          "durationMs": 3600000
+        },
+        "metrics": [
+          {
+            "namespace": "microsoft.network/loadbalancers",
+            "metric": "microsoft.network/loadbalancers--ByteCount",
+            "aggregation": 1
+          }
+        ],
+        "title": "Throughput (Last Hour)",
+        "gridSettings": {
+          "rowLimit": 10000
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "metrics"
+      },
+      "name": "metric - throughput"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

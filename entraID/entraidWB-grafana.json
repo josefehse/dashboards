@@ -1,0 +1,1359 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 21,
+  "links": [],
+  "panels": [
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## Sign-in Analysis\n\n### This report provides detailed sign-in information for your applications. Azure Active Directory Authentication Library (ADAL) has been deprecated. Use the Microsoft Authentication Library (MSAL) to avoid putting your app's security at risk. If you have existing applications that use ADAL, be sure to migrate them to MSAL. [Learn more about the migration steps](https://learn.microsoft.com/en-us/entra/identity-platform/msal-migration).",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.6.3",
+      "title": "Overview",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Total count of ADAL sign-ins across all apps",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 4
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let nonInteractive = AADNonInteractiveUserSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3],\" \",details[4])\n    | project TimeGenerated, AppDisplayName, AppId, Version, IPAddress, Identity, ResultType;\nlet interactive = SigninLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3],\" \",details[4])\n    | project TimeGenerated, AppDisplayName, AppId, Version, IPAddress, Identity, ResultType;\nlet spLogIns = AADServicePrincipalSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3], \" \", details[4])\n    | project TimeGenerated, ServicePrincipalName, AppId, Version, IPAddress, Identity, ResultType;\nunion interactive, nonInteractive, spLogIns\n| summarize Count = count()",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "ADAL Sign-ins",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Count of unique ADAL applications",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 4
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let nonInteractive = AADNonInteractiveUserSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project AppId;\nlet interactive = SigninLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project AppId;\nlet spLogIns = AADServicePrincipalSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project AppId;\nunion interactive, nonInteractive, spLogIns\n| summarize UniqueApps = dcount(AppId)",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique ADAL Apps",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Successful sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 4
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let nonInteractive = AADNonInteractiveUserSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nlet interactive = SigninLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nlet spLogIns = AADServicePrincipalSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nunion interactive, nonInteractive, spLogIns\n| where ResultType == 0\n| summarize Count = count()",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Success",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Failed sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let nonInteractive = AADNonInteractiveUserSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nlet interactive = SigninLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nlet spLogIns = AADServicePrincipalSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | where Key contains \"AD App\"\n    | where Value contains \"ADAL\"\n    | project ResultType;\nunion interactive, nonInteractive, spLogIns\n| where ResultType != 0\n| summarize Count = count()",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Failure",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Apps using Active Directory Authentication Libraries (ADAL)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sign-in Count"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Sign-in Count"
+          }
+        ]
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let nonInteractive = AADNonInteractiveUserSignInLogs\n|mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    |extend Key = ParsedFields.key\n    |extend Value = ParsedFields.value\n    |where Key contains \"AD App\"\n    |where Value contains \"ADAL\"\n    |extend details = split(Value, \" \")\n    |extend Version = strcat(details[3],\" \",details[4])\n|project TimeGenerated,\n['App Name'] = AppDisplayName,\n['App ID'] = AppId, \n ['ADAL Version'] = Version,\n['IP Address'] = IPAddress,\n['Identity type'] = Identity\n|summarize ['Sign-in Count'] = dcount(TimeGenerated, 4) by ['App Name'], ['App ID'], ['ADAL Version'], ['IP Address'],['Identity type'];\nlet interactive = SigninLogs\n|mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    |extend Key = ParsedFields.key\n    |extend Value = ParsedFields.value\n    |where Key contains \"AD App\"\n    |where Value contains \"ADAL\"\n    |extend details = split(Value, \" \")\n    |extend Version = strcat(details[3],\" \",details[4])\n|project TimeGenerated, \n['App Name'] = AppDisplayName, \n['App ID'] = AppId, \n['ADAL Version'] = Version,\n['IP Address'] = IPAddress,\n['Identity type'] = Identity\n|summarize ['Sign-in Count'] = dcount(TimeGenerated, 4) by ['App Name'], ['App ID'], ['ADAL Version'], ['IP Address'],['Identity type'];\nlet spLogIns = AADServicePrincipalSignInLogs\n     | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n     | extend Key = ParsedFields.key\n     | extend Value = ParsedFields.value\n     | where Key contains \"AD App\"\n     | where Value contains \"ADAL\"\n     | extend details = split(Value, \" \")\n     | extend Version = strcat(details[3], \" \", details[4])\n     | project TimeGenerated,\n         ['App Name'] = ServicePrincipalName,\n         ['App ID'] = AppId,\n         ['ADAL Version'] = Version,\n         ['IP Address'] = IPAddress,\n         ['Identity type'] = Identity\n     | summarize ['Sign-in Count'] = dcount(TimeGenerated, 4) by ['App Name'], ['App ID'], ['ADAL Version'],['IP Address'],['Identity type'];\nunion interactive, nonInteractive,spLogIns",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Apps using Active Directory Authentication Libraries (ADAL)",
+      "type": "table"
+    },
+    {
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 7,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "### ALL Sign-in Data\n\n💡 _Use the filters at the top to drill down by Apps and Users_",
+        "mode": "markdown"
+      },
+      "pluginVersion": "11.6.3",
+      "title": "All Sign-in Data",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Total sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 21
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": false,
+            "query": "let ALLnonInteractive = AADNonInteractiveUserSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3], \" \", details[4])\n    | project TimeGenerated, AppDisplayName, AppId;\nlet ALLinteractive = SigninLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3], \" \", details[4])\n    | project TimeGenerated, AppDisplayName, AppId, ResultType;\nlet AllSPLogIn = AADServicePrincipalSignInLogs\n    | mv-expand ParsedFields=parse_json(AuthenticationProcessingDetails)\n    | extend Key = ParsedFields.key\n    | extend Value = ParsedFields.value\n    | extend details = split(Value, \" \")\n    | extend Version = strcat(details[3], \" \", details[4])\n    | project TimeGenerated, ServicePrincipalName, AppId, ResultType;\nunion ALLnonInteractive, ALLinteractive, AllSPLogIn\n| where AppDisplayName in ($Apps) or '*' in ($Apps)\n| summarize Count = count()",
+            "resources": [
+              "${workspace}"
+            ],
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "All Sign-ins",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Unique apps count",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 21
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let ALLnonInteractive = AADNonInteractiveUserSignInLogs\n    | project AppId;\nlet ALLinteractive = SigninLogs\n    | project AppId;\nlet AllSPLogIn = AADServicePrincipalSignInLogs\n    | project AppId;\nunion ALLnonInteractive, ALLinteractive, AllSPLogIn\n| summarize UniqueApps = dcount(AppId)",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Unique Apps",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Successful sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 21
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let ALLinteractive = SigninLogs\n    | project ResultType;\nlet AllSPLogIn = AADServicePrincipalSignInLogs\n    | project ResultType;\nunion ALLinteractive, AllSPLogIn\n| where ResultType == 0\n| summarize Count = count()",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Success",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Failed sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 21
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let ALLinteractive = SigninLogs\n    | project ResultType;\nlet AllSPLogIn = AADServicePrincipalSignInLogs\n    | project ResultType;\nunion ALLinteractive, AllSPLogIn\n| where ResultType != 0\n| summarize Count = count()",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Failure",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Sign-ins by location with hierarchical country/city view",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Success Rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sign-in Count"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 27
+      },
+      "id": 12,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Sign-in Count"
+          }
+        ]
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": false,
+            "query": "let data = SigninLogs\n| extend AppDisplayName = iff(AppDisplayName == '', 'Unknown', AppDisplayName)\n|where AppDisplayName in ($Apps) or '*' in ($Apps)\n|where UserDisplayName in ($Users) or '*' in ($Users)\n| extend Country = iff(LocationDetails.countryOrRegion == '', 'Unknown country', tostring(LocationDetails.countryOrRegion))\n| extend City = iff(LocationDetails.city == '', 'Unknown city', tostring(LocationDetails.city))\n| extend errorCode = Status.errorCode\n| extend SigninStatus = case(errorCode == 0, \"Success\", errorCode == 50058, \"Pending user action\",errorCode == 50140, \"Pending user action\", errorCode == 51006, \"Pending user action\", errorCode == 50059, \"Pending user action\",errorCode == 65001, \"Pending user action\", errorCode == 52004, \"Pending user action\", errorCode == 50055, \"Pending user action\", errorCode == 50144, \"Pending user action\", errorCode == 50072, \"Pending user action\", errorCode == 50074, \"Pending user action\", errorCode == 16000, \"Pending user action\", errorCode == 16001, \"Pending user action\", errorCode == 16003, \"Pending user action\", errorCode == 50127, \"Pending user action\", errorCode == 50125, \"Pending user action\", errorCode == 50129, \"Pending user action\", errorCode == 50143, \"Pending user action\", errorCode == 81010, \"Pending user action\", errorCode == 81014, \"Pending user action\", errorCode == 81012 ,\"Pending user action\", \"Failure\");\ndata\n| summarize TotalCount = count(), SuccessCount = countif(SigninStatus == \"Success\"), FailureCount = countif(SigninStatus == \"Failure\"), InterruptCount = countif(SigninStatus == \"Pending user action\") by Country, City\n| order by TotalCount desc, Country asc\n| project Country, City, ['Sign-in Count'] = TotalCount, ['Success Count'] = SuccessCount, ['Failure Count'] = FailureCount, ['Interrupt Count'] = InterruptCount, ['Success Rate'] = 1.0 * SuccessCount / TotalCount",
+            "resources": [
+              "${workspace}"
+            ],
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Sign-ins by Location",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Geographic distribution of sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "#EAB839",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 27
+      },
+      "id": 13,
+      "options": {
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "controls": {
+          "mouseWheelZoom": true,
+          "showAttribution": true,
+          "showDebug": false,
+          "showMeasure": false,
+          "showScale": false,
+          "showZoom": true
+        },
+        "layers": [
+          {
+            "config": {
+              "showLegend": true,
+              "style": {
+                "color": {
+                  "field": "Count",
+                  "fixed": "dark-green"
+                },
+                "opacity": 0.4,
+                "rotation": {
+                  "fixed": 0,
+                  "max": 360,
+                  "min": -360,
+                  "mode": "mod"
+                },
+                "size": {
+                  "field": "Count",
+                  "fixed": 5,
+                  "max": 15,
+                  "min": 2
+                },
+                "symbol": {
+                  "fixed": "img/icons/marker/circle.svg",
+                  "mode": "fixed"
+                },
+                "textConfig": {
+                  "fontSize": 12,
+                  "offsetX": 0,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            },
+            "location": {
+              "mode": "auto"
+            },
+            "name": "Layer 1",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        },
+        "view": {
+          "allLayers": true,
+          "id": "zero",
+          "lat": 0,
+          "lon": 0,
+          "zoom": 1
+        }
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": false,
+            "query": "SigninLogs\n|extend ParseLocation = parse_json(LocationDetails)\n| extend Country = iff(ParseLocation.countryOrRegion == '', 'Unknown', tostring(ParseLocation.countryOrRegion))\n| extend City = iff(ParseLocation.city == '', 'Unknown', tostring(ParseLocation.city))\n| extend State = iff(ParseLocation.state == '', 'Unknown', tostring(ParseLocation.state))\n| extend GeoCoord = ParseLocation.geoCoordinates\n| extend ParseGeoCoord = parse_json(GeoCoord)\n| extend Latitude = tostring(ParseGeoCoord.latitude)\n| extend Longitude = tostring(ParseGeoCoord.longitude)\n| project UserDisplayName, Location, Latitude, Longitude, City, State, Country\n| summarize Count = count() by City, State, Country, Latitude, Longitude",
+            "resources": [
+              "${workspace}"
+            ],
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Sign-ins Heatmap",
+      "type": "geomap"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Sign-ins by device OS and browser",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Success Rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 37
+      },
+      "id": 14,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Sign-in Count"
+          }
+        ]
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": false,
+            "query": "let data = SigninLogs\n|where AppDisplayName in ($Apps) or '*' in ($Apps)\n|where UserDisplayName in ($Users) or '*' in ($Users)\n| extend errorCode = Status.errorCode\n| extend SigninStatus = case(errorCode == 0, \"Success\", errorCode == 50058, \"Pending user action\",errorCode == 50140, \"Pending user action\", errorCode == 51006, \"Pending user action\", errorCode == 50059, \"Pending user action\",errorCode == 65001, \"Pending user action\", errorCode == 52004, \"Pending user action\", errorCode == 50055, \"Pending user action\", errorCode == 50144, \"Pending user action\", errorCode == 50072, \"Pending user action\", errorCode == 50074, \"Pending user action\", errorCode == 16000, \"Pending user action\", errorCode == 16001, \"Pending user action\", errorCode == 16003, \"Pending user action\", errorCode == 50127, \"Pending user action\", errorCode == 50125, \"Pending user action\", errorCode == 50129, \"Pending user action\", errorCode == 50143, \"Pending user action\", errorCode == 81010, \"Pending user action\", errorCode == 81014, \"Pending user action\", errorCode == 81012 ,\"Pending user action\", \"Failure\");\ndata\n| summarize TotalCount = count(), SuccessCount = countif(SigninStatus == \"Success\"), FailureCount = countif(SigninStatus == \"Failure\"), InterruptCount = countif(SigninStatus == \"Pending user action\") by Os = tostring(DeviceDetail.operatingSystem), Browser = tostring(DeviceDetail.browser)\n| order by TotalCount desc, Os asc\n| project Os, Browser, ['Sign-in Count'] = TotalCount, ['Success Count'] = SuccessCount, ['Failure Count'] = FailureCount, ['Interrupt Count'] = InterruptCount, ['Success Rate'] = 1.0 * SuccessCount / TotalCount",
+            "resources": [
+              "${workspace}"
+            ],
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Sign-ins by Device",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "IPv6 addresses used for sign-ins",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Success Rate"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 37
+      },
+      "id": 15,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Sign-in Count"
+          }
+        ]
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "dashboardTime": false,
+            "query": "let data = SigninLogs\n|where AppDisplayName in ($Apps) or '*' in ($Apps)\n|where UserDisplayName in ($Users) or '*' in ($Users)\n| extend errorCode = Status.errorCode\n| extend SigninStatus = case(errorCode == 0, \"Success\", errorCode == 50058, \"Pending user action\",errorCode == 50140, \"Pending user action\", errorCode == 51006, \"Pending user action\", errorCode == 50059, \"Pending user action\",errorCode == 65001, \"Pending user action\", errorCode == 52004, \"Pending user action\", errorCode == 50055, \"Pending user action\", errorCode == 50144, \"Pending user action\", errorCode == 50072, \"Pending user action\", errorCode == 50074, \"Pending user action\", errorCode == 16000, \"Pending user action\", errorCode == 16001, \"Pending user action\", errorCode == 16003, \"Pending user action\", errorCode == 50127, \"Pending user action\", errorCode == 50125, \"Pending user action\", errorCode == 50129, \"Pending user action\", errorCode == 50143, \"Pending user action\", errorCode == 81010, \"Pending user action\", errorCode == 81014, \"Pending user action\", errorCode == 81012 ,\"Pending user action\", \"Failure\");\ndata\n| where IPAddress has \":\"\n| summarize TotalCount = count(), SuccessCount = countif(SigninStatus == \"Success\"), FailureCount = countif(SigninStatus == \"Failure\"), InterruptCount = countif(SigninStatus == \"Pending user action\") by IPAddress\n| order by TotalCount desc, IPAddress asc\n| project IPAddress, ['Sign-in Count'] = TotalCount, ['Success Count'] = SuccessCount, ['Failure Count'] = FailureCount, ['Interrupt Count'] = InterruptCount, ['Success Rate'] = 1.0 * SuccessCount / TotalCount",
+            "resources": [
+              "${workspace}"
+            ],
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "Sign-ins by IPv6 Address",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-azure-monitor-datasource",
+        "uid": "${datasource}"
+      },
+      "description": "Recent IPv6 sign-in details (last 200 events)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 16,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Time generated"
+          }
+        ]
+      },
+      "pluginVersion": "11.6.3",
+      "targets": [
+        {
+          "azureLogAnalytics": {
+            "query": "let data = SigninLogs\n|where AppDisplayName in ($Apps) or '*' in ($Apps)\n|where UserDisplayName in ($Users) or '*' in ($Users)\n| extend errorCode = Status.errorCode\n| extend SigninStatus = case(errorCode == 0, \"Success\", errorCode == 50058, \"Pending user action\",errorCode == 50140, \"Pending user action\", errorCode == 51006, \"Pending user action\", errorCode == 50059, \"Pending user action\",errorCode == 65001, \"Pending user action\", errorCode == 52004, \"Pending user action\", errorCode == 50055, \"Pending user action\", errorCode == 50144, \"Pending user action\", errorCode == 50072, \"Pending user action\", errorCode == 50074, \"Pending user action\", errorCode == 16000, \"Pending user action\", errorCode == 16001, \"Pending user action\", errorCode == 16003, \"Pending user action\", errorCode == 50127, \"Pending user action\", errorCode == 50125, \"Pending user action\", errorCode == 50129, \"Pending user action\", errorCode == 50143, \"Pending user action\", errorCode == 81010, \"Pending user action\", errorCode == 81014, \"Pending user action\", errorCode == 81012 ,\"Pending user action\", \"Failure\")\n| extend IPAddress\n| where IPAddress has \":\";\ndata\n| order by TimeGenerated desc\n| top 200 by TimeGenerated desc\n| extend TimeFromNow = now() - TimeGenerated\n| extend TimeAgo = strcat(case(TimeFromNow < 2m, strcat(toint(TimeFromNow / 1m), ' seconds'), TimeFromNow < 2h, strcat(toint(TimeFromNow / 1m), ' minutes'), TimeFromNow < 2d, strcat(toint(TimeFromNow / 1h), ' hours'), strcat(toint(TimeFromNow / 1d), ' days')), ' ago')\n| project User = UserDisplayName, ['Sign-in Status'] = SigninStatus, ['Sign-in Time'] = TimeAgo, App = AppDisplayName, ['Error code'] = errorCode, ['Result type'] = ResultType, ['IPv6 Address'] = IPAddress, ['Time generated'] = TimeGenerated, ['User principal name'] = UserPrincipalName",
+            "resource": "${workspace}",
+            "resultFormat": "table"
+          },
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "${datasource}"
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        }
+      ],
+      "title": "IPv6 sign-in details",
+      "type": "table"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 41,
+  "tags": [
+    "entra-id",
+    "sign-ins",
+    "azure-ad",
+    "authentication"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Azure Monitor",
+          "value": "azure-monitor-oob"
+        },
+        "includeAll": false,
+        "label": "Data Source",
+        "name": "datasource",
+        "options": [],
+        "query": "grafana-azure-monitor-datasource",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "ME-MngEnvMCAP557154-jofehse-1",
+          "value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "${datasource}"
+        },
+        "definition": "",
+        "includeAll": false,
+        "label": "Subscription",
+        "name": "subscription",
+        "options": [],
+        "query": {
+          "azureLogAnalytics": {
+            "query": "",
+            "resource": ""
+          },
+          "azureResourceGraph": {
+            "query": ""
+          },
+          "queryType": "Azure Subscriptions",
+          "refId": "A"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "DefaultWorkspace-e315fe54-eae5-464d-8266-0f41a0908da8-CCAN",
+          "value": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourceGroups/DefaultResourceGroup-CCAN/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-e315fe54-eae5-464d-8266-0f41a0908da8-CCAN"
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "${datasource}"
+        },
+        "definition": "",
+        "includeAll": false,
+        "label": "Workspace",
+        "name": "workspace",
+        "options": [],
+        "query": {
+          "queryType": "Azure Workspaces",
+          "refId": "A",
+          "subscription": "$subscription"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "${datasource}"
+        },
+        "definition": "",
+        "includeAll": true,
+        "label": "Apps",
+        "multi": true,
+        "name": "Apps",
+        "options": [],
+        "query": {
+          "azureLogAnalytics": {
+            "query": "SigninLogs\n| summarize Count = count() by AppDisplayName\n| order by Count desc, AppDisplayName asc\n| project AppDisplayName",
+            "resource": "${workspace}",
+            "resources": [
+              "$Workspace"
+            ]
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": [
+            "Jose Fehse"
+          ],
+          "value": [
+            "Jose Fehse"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "${datasource}"
+        },
+        "definition": "",
+        "includeAll": true,
+        "label": "Users",
+        "multi": true,
+        "name": "Users",
+        "options": [],
+        "query": {
+          "azureLogAnalytics": {
+            "query": "SigninLogs\n| where AppDisplayName in ($Apps) or '*' in ($Apps)\n| summarize Count = count() by UserDisplayName\n| order by Count desc, UserDisplayName asc\n| project UserDisplayName",
+            "resource": "$workspace",
+            "resources": [
+              "$Workspace"
+            ]
+          },
+          "queryType": "Azure Log Analytics",
+          "refId": "A"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "5m",
+      "15m",
+      "30m",
+      "1h",
+      "2h",
+      "1d"
+    ]
+  },
+  "timezone": "",
+  "title": "Entra ID Sign-in Analysis",
+  "uid": "entraidwb23",
+  "version": 7
+}

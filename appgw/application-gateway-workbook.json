@@ -1,0 +1,653 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Application Gateway Configuration Dashboard\r\n\r\nThis workbook provides a comprehensive view of all Application Gateways in your Azure subscription, including their configuration and related components."
+      },
+      "name": "text - header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "resource-group-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroup",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| summarize by resourceGroup\r\n| order by resourceGroup asc\r\n| project value = resourceGroup, label = resourceGroup, selected = false",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters - filters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Application Gateway Overview"
+      },
+      "name": "text - overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where resourceGroup in ({ResourceGroup})\r\n| extend SKU = properties.sku.name\r\n| extend Tier = properties.sku.tier\r\n| extend Capacity = properties.sku.capacity\r\n| extend AutoscaleMin = properties.autoscaleConfiguration.minCapacity\r\n| extend AutoscaleMax = properties.autoscaleConfiguration.maxCapacity\r\n| extend ProvisioningState = properties.provisioningState\r\n| extend OperationalState = properties.operationalState\r\n| extend PublicIP = array_length(properties.frontendIPConfigurations)\r\n| extend BackendPools = array_length(properties.backendAddressPools)\r\n| extend Listeners = array_length(properties.httpListeners)\r\n| extend Rules = array_length(properties.requestRoutingRules)\r\n| extend HealthProbes = array_length(properties.probes)\r\n| project Name = id, ResourceGroup = resourceGroup, Location = location, SKU, Tier, Capacity, AutoscaleMin, AutoscaleMax, ProvisioningState, OperationalState, BackendPools, Listeners, Rules, HealthProbes, id",
+        "size": 0,
+        "title": "Application Gateways",
+        "noDataMessage": "No Application Gateways found in the selected subscription(s) and resource group(s)",
+        "exportedParameters": [
+          {
+            "fieldName": "id",
+            "parameterName": "SelectedAppGateway",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "Name",
+            "parameterName": "SelectedAppGatewayName",
+            "parameterType": 1
+          }
+        ],
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "ResourceGroup",
+              "formatter": 14,
+              "formatOptions": {
+                "linkTarget": null,
+                "showIcon": true
+              }
+            },
+            {
+              "columnMatch": "SKU",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Tier",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Capacity",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "AutoscaleMin",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "ProvisioningState",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Failed",
+                    "representation": "red",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "OperationalState",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "id",
+              "formatter": 5
+            }
+          ],
+          "rowLimit": 1000,
+          "filter": true,
+          "labelSettings": [
+            {
+              "columnId": "Name",
+              "label": "App Gateway"
+            },
+            {
+              "columnId": "ResourceGroup",
+              "label": "Resource Group"
+            },
+            {
+              "columnId": "AutoscaleMin",
+              "label": "Autoscale Min"
+            },
+            {
+              "columnId": "AutoscaleMax",
+              "label": "Autoscale Max"
+            },
+            {
+              "columnId": "ProvisioningState",
+              "label": "Provisioning State"
+            },
+            {
+              "columnId": "OperationalState",
+              "label": "Operational State"
+            },
+            {
+              "columnId": "BackendPools",
+              "label": "Backend Pools"
+            },
+            {
+              "columnId": "HealthProbes",
+              "label": "Health Probes"
+            }
+          ]
+        }
+      },
+      "name": "query - app gateways"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Detailed Configuration\r\n\r\n**Selected Application Gateway:** {SelectedAppGatewayName}\r\n\r\nSelect an Application Gateway from the table above to view detailed configuration."
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedAppGateway",
+        "comparison": "isNotEqualTo"
+      },
+      "name": "text - detailed config"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-basic",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Basic Configuration",
+            "subTarget": "basic",
+            "preText": "",
+            "style": "link"
+          },
+          {
+            "id": "tab-backend",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Backend Pools",
+            "subTarget": "backend",
+            "style": "link"
+          },
+          {
+            "id": "tab-probes",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Health Probes",
+            "subTarget": "probes",
+            "style": "link"
+          },
+          {
+            "id": "tab-listeners",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Listeners",
+            "subTarget": "listeners",
+            "style": "link"
+          },
+          {
+            "id": "tab-rules",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Routing Rules",
+            "subTarget": "rules",
+            "style": "link"
+          },
+          {
+            "id": "tab-health",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Backend Health",
+            "subTarget": "health",
+            "style": "link"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedAppGateway",
+        "comparison": "isNotEqualTo"
+      },
+      "name": "links - tabs"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| extend WAFEnabled = properties.webApplicationFirewallConfiguration.enabled\r\n| extend WAFMode = properties.webApplicationFirewallConfiguration.firewallMode\r\n| extend WAFRuleSetType = properties.webApplicationFirewallConfiguration.ruleSetType\r\n| extend WAFRuleSetVersion = properties.webApplicationFirewallConfiguration.ruleSetVersion\r\n| extend EnableHTTP2 = properties.enableHttp2\r\n| extend FrontendPorts = array_length(properties.frontendPorts)\r\n| extend SSLCertificates = array_length(properties.sslCertificates)\r\n| extend SSLPolicy = properties.sslPolicy.policyName\r\n| project Configuration = 'General', ['SKU Name'] = properties.sku.name, ['SKU Tier'] = properties.sku.tier, ['SKU Capacity'] = properties.sku.capacity, ['Autoscale Min'] = properties.autoscaleConfiguration.minCapacity, ['Autoscale Max'] = properties.autoscaleConfiguration.maxCapacity\r\n| union (Resources\r\n  | where type == \"microsoft.network/applicationgateways\"\r\n  | where id == \"{SelectedAppGateway}\"\r\n  | extend WAFEnabled = properties.webApplicationFirewallConfiguration.enabled\r\n  | extend WAFMode = properties.webApplicationFirewallConfiguration.firewallMode\r\n  | project Configuration = 'WAF', ['WAF Enabled'] = WAFEnabled, ['WAF Mode'] = WAFMode, ['Rule Set Type'] = properties.webApplicationFirewallConfiguration.ruleSetType, ['Rule Set Version'] = properties.webApplicationFirewallConfiguration.ruleSetVersion)\r\n| union (Resources\r\n  | where type == \"microsoft.network/applicationgateways\"\r\n  | where id == \"{SelectedAppGateway}\"\r\n  | project Configuration = 'Network', ['HTTP2 Enabled'] = properties.enableHttp2, ['Frontend Ports'] = array_length(properties.frontendPorts), ['SSL Certificates'] = array_length(properties.sslCertificates), ['SSL Policy'] = properties.sslPolicy.policyName)",
+        "size": 0,
+        "title": "Basic Configuration",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Configuration",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "SKU Name",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "SKU Tier",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "SKU Capacity",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Autoscale Min",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Autoscale Max",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "WAF Enabled",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "WAF Mode",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Rule Set Type",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Rule Set Version",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "HTTP2 Enabled",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "SSL Policy",
+              "formatter": 1
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "basic"
+      },
+      "name": "query - basic config"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend PoolName = tostring(backendPool.name)\r\n| extend ProvisioningState = tostring(backendPool.properties.provisioningState)\r\n| extend BackendAddresses = backendPool.properties.backendAddresses\r\n| extend BackendIPConfigs = backendPool.properties.backendIPConfigurations\r\n| extend AddressCount = coalesce(array_length(BackendAddresses), 0)\r\n| extend IPConfigCount = coalesce(array_length(BackendIPConfigs), 0)\r\n| mv-expand address = BackendAddresses\r\n| extend FQDN = tostring(address.fqdn)\r\n| extend IPAddress = tostring(address.ipAddress)\r\n| extend Target = coalesce(FQDN, IPAddress, '')\r\n| summarize Targets = make_list(Target) by PoolName, AddressCount, IPConfigCount, ProvisioningState\r\n| extend TargetsDisplay = iff(array_length(Targets) > 0 and Targets[0] != '', strcat_array(Targets, ', '), 'No targets configured')\r\n| project ['Backend Pool'] = PoolName, ['Target Count'] = AddressCount + IPConfigCount, ['Targets'] = TargetsDisplay, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Backend Address Pools",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "backend"
+      },
+      "name": "query - backend pools"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand probe = properties.probes\r\n| extend ProbeName = probe.name\r\n| extend Protocol = probe.properties.protocol\r\n| extend Host = probe.properties.host\r\n| extend Path = probe.properties.path\r\n| extend Interval = probe.properties.interval\r\n| extend Timeout = probe.properties.timeout\r\n| extend UnhealthyThreshold = probe.properties.unhealthyThreshold\r\n| extend PickHostNameFromBackend = probe.properties.pickHostNameFromBackendHttpSettings\r\n| extend StatusCodes = probe.properties.match.statusCodes\r\n| extend ProvisioningState = probe.properties.provisioningState\r\n| project ['Health Probe'] = ProbeName, Protocol, Host, Path, ['Interval (s)'] = Interval, ['Timeout (s)'] = Timeout, ['Unhealthy Threshold'] = UnhealthyThreshold, ['Pick Host From Backend'] = PickHostNameFromBackend, ['Valid Status Codes'] = StatusCodes, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Health Probes",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Health Probe",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Protocol",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Host",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Path",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Interval (s)",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Timeout (s)",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Unhealthy Threshold",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Pick Host From Backend",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Valid Status Codes",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "probes"
+      },
+      "name": "query - health probes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand listener = properties.httpListeners\r\n| extend ListenerName = listener.name\r\n| extend Protocol = listener.properties.protocol\r\n| extend FrontendPort = split(listener.properties.frontendPort.id, '/')[-1]\r\n| extend HostName = listener.properties.hostName\r\n| extend HostNames = listener.properties.hostNames\r\n| extend RequireServerNameIndication = listener.properties.requireServerNameIndication\r\n| extend SSLCertificate = split(listener.properties.sslCertificate.id, '/')[-1]\r\n| extend ProvisioningState = listener.properties.provisioningState\r\n| project ['Listener'] = ListenerName, Protocol, ['Frontend Port'] = FrontendPort, ['Host Name'] = HostName, ['Host Names'] = HostNames, ['SSL Certificate'] = SSLCertificate, ['Require SNI'] = RequireServerNameIndication, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "HTTP Listeners",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "listeners"
+      },
+      "name": "query - listeners"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand rule = properties.requestRoutingRules\r\n| extend RuleName = rule.name\r\n| extend RuleType = rule.properties.ruleType\r\n| extend Priority = rule.properties.priority\r\n| extend Listener = split(rule.properties.httpListener.id, '/')[-1]\r\n| extend BackendPool = split(rule.properties.backendAddressPool.id, '/')[-1]\r\n| extend BackendHttpSettings = split(rule.properties.backendHttpSettings.id, '/')[-1]\r\n| extend RedirectConfiguration = split(rule.properties.redirectConfiguration.id, '/')[-1]\r\n| extend URLPathMap = split(rule.properties.urlPathMap.id, '/')[-1]\r\n| extend ProvisioningState = rule.properties.provisioningState\r\n| project ['Rule'] = RuleName, ['Rule Type'] = RuleType, Priority, Listener, ['Backend Pool'] = BackendPool, ['Backend HTTP Settings'] = BackendHttpSettings, ['Redirect Config'] = RedirectConfiguration, ['URL Path Map'] = URLPathMap, ['Provisioning State'] = ProvisioningState",
+        "size": 0,
+        "title": "Request Routing Rules",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "sortBy": []
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "rules"
+      },
+      "name": "query - routing rules"
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "workbook-backend-health",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.network/applicationgateways",
+        "metricScope": 0,
+        "resourceParameter": "SelectedAppGateway",
+        "resourceIds": [
+          "{SelectedAppGateway}"
+        ],
+        "timeContext": {
+          "durationMs": 3600000
+        },
+        "metrics": [
+          {
+            "namespace": "microsoft.network/applicationgateways",
+            "metric": "microsoft.network/applicationgateways--HealthyHostCount",
+            "aggregation": 4,
+            "splitBy": [
+              "BackendSettingsPool"
+            ]
+          },
+          {
+            "namespace": "microsoft.network/applicationgateways",
+            "metric": "microsoft.network/applicationgateways--UnhealthyHostCount",
+            "aggregation": 4
+          }
+        ],
+        "title": "Backend Health Status (Last Hour)",
+        "gridSettings": {
+          "rowLimit": 10000
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "health"
+      },
+      "name": "metric - backend health"
+    },
+    {
+      "type": 10,
+      "content": {
+        "chartId": "workbook-response-status",
+        "version": "MetricsItem/2.0",
+        "size": 0,
+        "chartType": 2,
+        "resourceType": "microsoft.network/applicationgateways",
+        "metricScope": 0,
+        "resourceParameter": "SelectedAppGateway",
+        "resourceIds": [
+          "{SelectedAppGateway}"
+        ],
+        "timeContext": {
+          "durationMs": 3600000
+        },
+        "metrics": [
+          {
+            "namespace": "microsoft.network/applicationgateways",
+            "metric": "microsoft.network/applicationgateways--ResponseStatus",
+            "aggregation": 1,
+            "splitBy": [
+              "HttpStatusGroup"
+            ]
+          }
+        ],
+        "title": "Response Status Distribution (Last Hour)",
+        "gridSettings": {
+          "rowLimit": 10000
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "health"
+      },
+      "name": "metric - response status"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

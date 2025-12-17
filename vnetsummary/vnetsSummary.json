@@ -1,0 +1,92 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "subscription-filter",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscriptions",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true,
+              "showDefault": false
+            },
+            "defaultValue": "value::all",
+            "value": [
+              "/subscriptions/031b5579-2135-4d4d-8383-775c0f25492d"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 1"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type =~ 'microsoft.network/virtualnetworks'\r\n| mv-expand subnets = properties.subnets\r\n| project\r\n    VNetName = name,\r\n    VNetId = id,\r\n    //SubnetName = tostring(subnets.name),\r\n    Subnet = tostring(subnets.id),\r\n    AddressPrefix = tostring(subnets.properties.addressPrefix),\r\n    NSGId = tostring(subnets.properties.networkSecurityGroup.id),\r\n    UDRId = tostring(subnets.properties.routeTable.id)\r\n| order by VNetName asc\r\n",
+        "size": 2,
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscriptions}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "SubnetId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkColumn": "SubnetId",
+                "linkTarget": "Resource",
+                "showIcon": true
+              }
+            },
+            {
+              "columnMatch": "NSGId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkColumn": "NSGId",
+                "linkTarget": "Resource",
+                "linkIsContextBlade": true,
+                "showIcon": true
+              }
+            },
+            {
+              "columnMatch": "UDRId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkColumn": "UDRId",
+                "linkTarget": "Resource",
+                "linkIsContextBlade": true,
+                "showIcon": true
+              }
+            }
+          ],
+          "rowLimit": 500,
+          "filter": true
+        },
+        "sortBy": []
+      },
+      "name": "query - 0"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

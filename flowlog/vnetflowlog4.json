@@ -1,0 +1,609 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "3314ba23-7787-4c6f-b7d2-3cf56071e1e4",
+            "version": "KqlParameterItem/1.0",
+            "name": "LAW",
+            "label": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "query": "resources\r\n| where type == 'microsoft.operationalinsights/workspaces'\r\n| project id",
+            "crossComponentResources": [
+              "value::tenant"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resources/tenants",
+            "value": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourceGroups/DefaultResourceGroup-CCAN/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-e315fe54-eae5-464d-8266-0f41a0908da8-CCAN"
+          },
+          {
+            "id": "8aff1e9a-736e-4208-a741-7e71c279e63b",
+            "version": "KqlParameterItem/1.0",
+            "name": "Time",
+            "type": 4,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 300000
+                },
+                {
+                  "durationMs": 900000
+                },
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ]
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resources/tenants"
+      },
+      "name": "parameters - 0"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "f0f452f8-4a33-46bc-8cba-5689f33a463a",
+            "cellValue": "selectTab",
+            "linkTarget": "parameter",
+            "linkLabel": "VNET Flow",
+            "subTarget": "vnet",
+            "style": "link"
+          },
+          {
+            "id": "8421ba81-ee8c-4c38-937b-3de522d9764f",
+            "cellValue": "selectTab",
+            "linkTarget": "parameter",
+            "linkLabel": "NIC Flow",
+            "subTarget": "nics",
+            "style": "link"
+          },
+          {
+            "id": "fffce070-88b4-40dd-8b9e-89617773f68d",
+            "cellValue": "selectTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Source Analysis",
+            "subTarget": "source",
+            "style": "link"
+          },
+          {
+            "id": "d9c1c35d-6319-4597-9149-1847869ecb58",
+            "cellValue": "selectTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Target Analysis",
+            "subTarget": "target",
+            "style": "link"
+          },
+          {
+            "id": "d6deeee0-bcbc-40f5-8954-254bdf4f25d1",
+            "cellValue": "selectTab",
+            "linkTarget": "parameter",
+            "linkLabel": "General Flow",
+            "subTarget": "general",
+            "preText": "",
+            "postText": "",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "links - 2"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "735dde81-9396-41ba-9f50-8b910bb7bf00",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "FlowType2",
+                  "label": "FlowType",
+                  "type": 2,
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "jsonData": "[{ \"value\": \"'External'\", \"label\": \"External\" },{ \"value\": \"'Internal'\", \"label\": \"Internal\"}, { \"value\": \"'Internal','External'\", \"label\": \"Both\", \"selected\":true }]",
+                  "value": "'External'"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - general"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "NTANetAnalytics\r\n| where SubType == \"FlowLog\"\r\n| extend FlowType2 = iff((isnotempty(SrcPublicIps) or isnotempty(DestPublicIps)), \"External\", \"Internal\")\r\n| where FlowType2 in~ ({FlowType2})\r\n| extend azsrcpublicip = split(SrcPublicIps, \"|\")[0], azdestpublicip = split(DestPublicIps, \"|\")[0]\r\n| extend SrcIp = iff(isempty(SrcIp), azsrcpublicip, SrcIp), DestIp = iff(isempty(DestIp), azdestpublicip, DestIp)\r\n| summarize\r\n    bytes_in  = sum(coalesce(BytesDestToSrc, 0)),\r\n    bytes_out = sum(coalesce(BytesSrcToDest, 0)),\r\n    total= sum(coalesce(BytesDestToSrc, 0))+sum(coalesce(BytesSrcToDest, 0))\r\nby SrcIp\r\n| sort by total desc \r\n| project-away total\r\n| take 15",
+              "size": 0,
+              "title": "Source Total bytes",
+              "noDataMessage": "No flows found",
+              "timeContextFromParameter": "Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{LAW}"
+              ],
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": true
+              }
+            },
+            "name": "query - Source Flow"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "NTANetAnalytics\r\n| where SubType == \"FlowLog\"\r\n| extend FlowType2 = iff((isnotempty(SrcPublicIps) or isnotempty(DestPublicIps)), \"External\", \"Internal\")\r\n| where FlowType2 in~ ({FlowType2})\r\n| extend azsrcpublicip = split(SrcPublicIps, \"|\")[0], azdestpublicip = split(DestPublicIps, \"|\")[0]\r\n| extend SrcIp = iff(isempty(SrcIp), azsrcpublicip, SrcIp), DestIp = iff(isempty(DestIp), azdestpublicip, DestIp)\r\n| summarize\r\n    bytes_in  = sum(coalesce(BytesDestToSrc, 0)),\r\n    bytes_out = sum(coalesce(BytesSrcToDest, 0))\r\nby DestIp\r\n| take 15",
+              "size": 0,
+              "title": "Destination Total bytes",
+              "noDataMessage": "No flows found",
+              "timeContextFromParameter": "Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{LAW}"
+              ],
+              "visualization": "categoricalbar"
+            },
+            "name": "query - Destination Flow"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectTab",
+        "comparison": "isEqualTo",
+        "value": "general"
+      },
+      "name": "group - general"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "crossComponentResources": [
+                "{LAW}"
+              ],
+              "parameters": [
+                {
+                  "id": "5b6343f3-db32-44c6-a07c-730f97ed7454",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "SourceIpSource",
+                  "type": 2,
+                  "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| summarize by SrcIp\r\n| sort by SrcIp asc",
+                  "crossComponentResources": [
+                    "{LAW}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "Time",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": "10.0.0.8"
+                },
+                {
+                  "id": "4894d285-cf65-4ca3-aeda-db20d6edc5d6",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "DestinationIpSource",
+                  "label": "Destination",
+                  "type": 2,
+                  "multiSelect": true,
+                  "quote": "",
+                  "delimiter": ",",
+                  "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| where SrcIp == '{SourceIpSource}'\r\n| summarize by DestIp\r\n| sort by DestIp asc",
+                  "crossComponentResources": [
+                    "{LAW}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "Time",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": [
+                    ""
+                  ]
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - source"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| where SrcIp == '{SourceIpSource}' and DestIp == '{DestinationIpSource}'\r\n| project SrcIp, DestIp,L4Protocol,L7Protocol, FlowDirection, FlowStatus, SrcPorts, DestPort",
+              "size": 0,
+              "title": "All Flows",
+              "noDataMessage": "No flows found",
+              "timeContextFromParameter": "Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{LAW}"
+              ]
+            },
+            "name": "query - allflowsfiltered - Copy"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectTab",
+        "comparison": "isEqualTo",
+        "value": "source"
+      },
+      "name": "group - source"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "crossComponentResources": [
+                "{LAW}"
+              ],
+              "parameters": [
+                {
+                  "id": "b2eb545b-cc04-4395-a916-2d10d1c62692",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "DestinationIpTarget",
+                  "label": "Destination",
+                  "type": 2,
+                  "multiSelect": true,
+                  "quote": "",
+                  "delimiter": ",",
+                  "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| summarize by DestIp\r\n| sort by DestIp asc",
+                  "crossComponentResources": [
+                    "{LAW}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "Time",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": [
+                    "99.229.191.111"
+                  ]
+                },
+                {
+                  "id": "76f1db5b-8e90-451a-ab2d-0e5946f88970",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "SourceIpTarget",
+                  "type": 2,
+                  "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| where DestIp == '{DestinationIpTarget}'\r\n| summarize by SrcIp\r\n| sort by SrcIp asc",
+                  "crossComponentResources": [
+                    "{LAW}"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "Time",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": "52.228.13.159"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - target"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "NTANetAnalytics                                | where SubType == 'FlowLog' and  FaSchemaVersion == '3'\r\n| where SrcIp == '{SourceIpTarget}' and DestIp == '{DestinationIpTarget}'\r\n| project SrcIp, DestIp,L4Protocol,L7Protocol, FlowDirection, FlowStatus, SrcPorts, DestPort",
+              "size": 0,
+              "title": "All Flows",
+              "noDataMessage": "No flows found",
+              "timeContextFromParameter": "Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{LAW}"
+              ]
+            },
+            "name": "query - allflowsfiltered - Copy - Copy"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectTab",
+        "comparison": "isEqualTo",
+        "value": "target"
+      },
+      "name": "group - target"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "crossComponentResources": [
+                "value::tenant"
+              ],
+              "parameters": [
+                {
+                  "id": "4cadf3d3-190e-43e6-bc5f-3658de8709fe",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "NICs",
+                  "label": "Network Interfaces",
+                  "type": 5,
+                  "multiSelect": true,
+                  "quote": "'",
+                  "delimiter": ",",
+                  "query": "resources\r\n| where type =~ 'microsoft.network/networkinterfaces'\r\n| project value = id, label = id, selected = false, group = resourceGroup",
+                  "crossComponentResources": [
+                    "value::tenant"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 86400000
+                  },
+                  "queryType": 1,
+                  "resourceType": "microsoft.resources/tenants",
+                  "value": [
+                    "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourceGroups/rg-mgmt/providers/Microsoft.Network/networkInterfaces/win189"
+                  ]
+                }
+              ],
+              "style": "pills",
+              "queryType": 1,
+              "resourceType": "microsoft.resources/tenants"
+            },
+            "name": "parameters - 0"
+          },
+          {
+            "type": 10,
+            "content": {
+              "chartId": "workbookfef64e2c-2fbb-4cf9-8229-0613220dcdaa",
+              "version": "MetricsItem/2.0",
+              "size": 0,
+              "chartType": 2,
+              "resourceType": "microsoft.network/networkinterfaces",
+              "metricScope": 0,
+              "resourceParameter": "NICs",
+              "resourceIds": [
+                "{NICs}"
+              ],
+              "timeContextFromParameter": "Time",
+              "timeContext": {
+                "durationMs": 86400000
+              },
+              "metrics": [
+                {
+                  "namespace": "microsoft.network/networkinterfaces",
+                  "metric": "microsoft.network/networkinterfaces--BytesSentRate",
+                  "aggregation": 1
+                },
+                {
+                  "namespace": "microsoft.network/networkinterfaces",
+                  "metric": "microsoft.network/networkinterfaces--BytesReceivedRate",
+                  "aggregation": 1
+                }
+              ],
+              "gridSettings": {
+                "rowLimit": 10000
+              }
+            },
+            "name": "metric - 1"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectTab",
+        "comparison": "isEqualTo",
+        "value": "nics"
+      },
+      "name": "group - NICs"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "cd1efe58-b07e-4f01-9a13-de7c263fe0b9",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "VirtualNetworks",
+                  "label": "Virtual Networks",
+                  "type": 5,
+                  "query": "resources\r\n| where type =~ 'microsoft.network/virtualnetworks'\r\n| project value=id, label=id",
+                  "crossComponentResources": [
+                    "value::tenant"
+                  ],
+                  "typeSettings": {
+                    "additionalResourceOptions": []
+                  },
+                  "timeContext": {
+                    "durationMs": 86400000
+                  },
+                  "queryType": 1,
+                  "resourceType": "microsoft.resources/tenants",
+                  "value": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourceGroups/rg-Hub/providers/Microsoft.Network/virtualNetworks/vnet-hub"
+                },
+                {
+                  "id": "3c89e878-0248-470c-8762-43381088370f",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "FlowType3",
+                  "label": "Flow Type",
+                  "type": 2,
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "jsonData": "[{ \"value\": \"'External'\", \"label\": \"External\" },{ \"value\": \"'Internal'\", \"label\": \"Internal\"}, { \"value\": \"'Internal','External'\", \"label\": \"Both\", \"selected\":true }]"
+                },
+                {
+                  "id": "cb894c1d-0d18-4928-bc6e-d127fe4b0f47",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "Window2",
+                  "label": "Window",
+                  "type": 2,
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "jsonData": "[{ \"value\": \"10\", \"label\": \"10m\", \"selected\":true  }\r\n, { \"value\": \"60\", \"label\": \"1h\"}]"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "parameters - 1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "\r\nlet window = 10m;\r\nlet seconds = 10 * 60;\r\nNTANetAnalytics\r\n| where SubType == \"FlowLog\"and FaSchemaVersion == '3' and FlowType != 'IntraVnet'\r\n| extend FlowType3=iff((isnotempty(SrcPublicIps) or isnotempty(DestPublicIps)),\"External\", \"Internal\")\r\n| where FlowType3 in~ ({FlowType3})\r\n| extend vnetidsplit=split('{VirtualNetworks}','/')\r\n| where TargetResourceType == \"VirtualNetwork\" and TargetResourceId =~  strcat(vnetidsplit[2],'/',vnetidsplit[4],'/',vnetidsplit[8])\r\n| summarize\r\n    bytes_in = sumif(coalesce(BytesDestToSrc, 0), FlowDirection == \"Inbound\"),\r\n    bytes_out = sumif(coalesce(BytesSrcToDest, 0), FlowDirection == \"Outbound\")\r\n    by bin(FlowIntervalStartTime, window), SrcIp, DestIp, DestPort, L4Protocol\r\n| summarize\r\n    total_bytes_in = sum(bytes_in),\r\n    total_bytes_out = sum(bytes_out)\r\n    by FlowIntervalStartTime\r\n| extend bps_in = 8.0 * total_bytes_in / seconds,\r\n         bps_out = 8.0 * total_bytes_out / seconds\r\n| project FlowIntervalStartTime, bps_in, bps_out\r\n| render timechart\r\n",
+              "size": 0,
+              "title": "VNet Flow - bits",
+              "timeContextFromParameter": "Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{LAW}"
+              ],
+              "chartSettings": {
+                "yAxis": [
+                  "bps_in",
+                  "bps_out"
+                ]
+              }
+            },
+            "name": "query - 0"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectTab",
+        "comparison": "isEqualTo",
+        "value": "vnet"
+      },
+      "name": "group - VNET"
+    }
+  ],
+  "fallbackResourceIds": [
+    "azure monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
