@@ -59,6 +59,31 @@
             "value": [
               "value::all"
             ]
+          },
+          {
+            "id": "selected-rule-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "SelectedRule",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": false,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand rule = properties.loadBalancingRules\r\n| extend RuleName = tostring(rule.name)\r\n| project value = RuleName, label = RuleName, selected = false\r\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": null,
+            "conditionalVisibility": {
+              "parameterName": "SelectedLoadBalancer",
+              "comparison": "isNotEqualTo"
+            }
           }
         ],
         "style": "pills",
@@ -180,6 +205,128 @@
     {
       "type": 1,
       "content": {
+        "json": "---\r\n## Rules & Backend Configuration Status\r\n\r\n**Note:** Status below shows configuration state only. For actual backend health (probe results), see the \"Health Probe Status by Backend\" chart in the Metrics tab after selecting a Load Balancer."
+      },
+      "name": "text - rules header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| extend LBName = split(id, '/')[-1]\r\n| mv-expand rule = properties.loadBalancingRules\r\n| extend RuleName = tostring(rule.name)\r\n| extend Protocol = tostring(rule.properties.protocol)\r\n| extend FrontendPort = tostring(rule.properties.frontendPort)\r\n| extend BackendPort = tostring(rule.properties.backendPort)\r\n| extend BackendPoolNameFromRule = tostring(split(rule.properties.backendAddressPool.id, '/')[-1])\r\n| extend ProbeName = tostring(split(rule.properties.probe.id, '/')[-1])\r\n| extend RuleProvisioningState = tostring(rule.properties.provisioningState)\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend CurrentPoolName = tostring(backendPool.name)\r\n| where CurrentPoolName == BackendPoolNameFromRule\r\n| extend BackendPoolProvisioningState = tostring(backendPool.properties.provisioningState)\r\n| extend BackendCount = array_length(backendPool.properties.loadBalancerBackendAddresses)\r\n| extend HealthStatus = case(\r\n    RuleProvisioningState != \"Succeeded\", \"Misconfigured\",\r\n    BackendPoolProvisioningState != \"Succeeded\", \"Misconfigured\",\r\n    BackendCount == 0, \"No Backends\",\r\n    \"Configured\"\r\n  )\r\n| project ['Load Balancer'] = LBName, ['Rule'] = RuleName, Protocol, ['Frontend Port'] = FrontendPort, ['Backend Port'] = BackendPort, ['Backend Pool'] = BackendPoolNameFromRule, ['Backends Count'] = BackendCount, ['Health Probe'] = ProbeName, ['Status'] = HealthStatus, ['Provisioning State'] = RuleProvisioningState",
+        "size": 0,
+        "title": "Load Balancing Rules with Backend Health Overview",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Configured",
+                    "representation": "blue",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "No Backends",
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Misconfigured",
+                    "representation": "red",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "gray",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 1000,
+          "filter": true
+        }
+      },
+      "name": "query - rules health overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend LBName = split(id, '/')[-1]\r\n| extend PoolName = tostring(backendPool.name)\r\n| extend LoadBalancerBackendAddresses = backendPool.properties.loadBalancerBackendAddresses\r\n| mv-expand address = LoadBalancerBackendAddresses\r\n| extend IPAddress = tostring(address.properties.ipAddress)\r\n| extend NICId = tostring(address.properties.networkInterfaceIPConfiguration.id)\r\n| extend VMName = coalesce(split(NICId, '/')[-3], 'External IP')\r\n| extend VMNICName = split(NICId, '/')[-1]\r\n| extend BackendStatus = 'Configured'\r\n| project ['Load Balancer'] = LBName, ['Backend Pool'] = PoolName, ['Backend Target'] = VMName, ['VM NIC'] = VMNICName, ['IP Address'] = IPAddress, ['Status'] = BackendStatus",
+        "size": 0,
+        "title": "Backend Pool Members (Configured Targets)",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Configured",
+                    "representation": "blue",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 1000,
+          "filter": true,
+          "hierarchySettings": {
+            "groupByResource": false,
+            "groupByResourceGroup": false
+          }
+        }
+      },
+      "name": "query - backend members"
+    },
+    {
+      "type": 1,
+      "content": {
         "json": "---\r\n### Detailed Configuration\r\n\r\n**Selected Load Balancer:** {SelectedLoadBalancerName}\r\n\r\nSelect a Load Balancer from the table above to view detailed configuration."
       },
       "conditionalVisibility": {
@@ -249,6 +396,14 @@
             "linkTarget": "parameter",
             "linkLabel": "Outbound Rules",
             "subTarget": "outbound",
+            "style": "link"
+          },
+          {
+            "id": "tab-health-dashboard",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Rules Health Dashboard",
+            "subTarget": "health-dashboard",
             "style": "link"
           },
           {
@@ -566,77 +721,129 @@
       "name": "query - outbound rules"
     },
     {
-      "type": 10,
+      "type": 1,
       "content": {
-        "chartId": "workbook-data-path-availability",
-        "version": "MetricsItem/2.0",
-        "size": 0,
-        "chartType": 2,
-        "resourceType": "microsoft.network/loadbalancers",
-        "metricScope": 0,
-        "resourceParameter": "SelectedLoadBalancer",
-        "resourceIds": [
-          "{SelectedLoadBalancer}"
-        ],
-        "timeContext": {
-          "durationMs": 3600000
-        },
-        "metrics": [
-          {
-            "namespace": "microsoft.network/loadbalancers",
-            "metric": "microsoft.network/loadbalancers--VipAvailability",
-            "aggregation": 4
-          }
-        ],
-        "title": "Data Path Availability (Last Hour)",
-        "gridSettings": {
-          "rowLimit": 10000
-        }
+        "json": "---\r\n### Rules Health Dashboard\r\n\r\n**Instructions:** Click on a Load Balancing Rule below to view real-time health status of all backend components behind that rule."
       },
       "conditionalVisibility": {
         "parameterName": "selectedTab",
         "comparison": "isEqualTo",
-        "value": "metrics"
+        "value": "health-dashboard"
       },
-      "name": "metric - data path"
+      "name": "text - health dashboard intro"
     },
     {
-      "type": 10,
+      "type": 3,
       "content": {
-        "chartId": "workbook-health-probe-status",
-        "version": "MetricsItem/2.0",
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand rule = properties.loadBalancingRules\r\n| extend RuleName = tostring(rule.name)\r\n| extend Protocol = tostring(rule.properties.protocol)\r\n| extend FrontendPort = tostring(rule.properties.frontendPort)\r\n| extend BackendPort = tostring(rule.properties.backendPort)\r\n| extend BackendPoolNameFromRule = tostring(split(rule.properties.backendAddressPool.id, '/')[-1])\r\n| extend ProbeName = tostring(split(rule.properties.probe.id, '/')[-1])\r\n| extend LBName = split(id, '/')[-1]\r\n| extend LBResourceGroup = resourceGroup\r\n| extend LBSubscription = subscriptionId\r\n| project ['Rule Name'] = RuleName, Protocol, ['FE Port'] = FrontendPort, ['BE Port'] = BackendPort, ['Backend Pool'] = BackendPoolNameFromRule, ['Health Probe'] = ProbeName, RuleName, LBName, LBResourceGroup, LBSubscription",
         "size": 0,
-        "chartType": 2,
-        "resourceType": "microsoft.network/loadbalancers",
-        "metricScope": 0,
-        "resourceParameter": "SelectedLoadBalancer",
-        "resourceIds": [
-          "{SelectedLoadBalancer}"
+        "title": "Load Balancing Rules",
+        "noDataMessage": "Select a Load Balancer above to view its rules.",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
         ],
-        "timeContext": {
-          "durationMs": 3600000
-        },
-        "metrics": [
+        "exportedParameters": [
           {
-            "namespace": "microsoft.network/loadbalancers",
-            "metric": "microsoft.network/loadbalancers--DipAvailability",
-            "aggregation": 4,
-            "splitBy": [
-              "BackendIPAddress"
-            ]
+            "fieldName": "RuleName",
+            "parameterName": "SelectedRuleForHealth",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "LBName",
+            "parameterName": "SelectedLBNameForHealth",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "LBResourceGroup",
+            "parameterName": "SelectedLBRGForHealth",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "LBSubscription",
+            "parameterName": "SelectedLBSubForHealth",
+            "parameterType": 1
           }
         ],
-        "title": "Health Probe Status by Backend (Last Hour)",
         "gridSettings": {
-          "rowLimit": 10000
+          "rowLimit": 100,
+          "filter": true
         }
       },
       "conditionalVisibility": {
         "parameterName": "selectedTab",
         "comparison": "isEqualTo",
-        "value": "metrics"
+        "value": "health-dashboard"
       },
-      "name": "metric - health probe"
+      "name": "query - rules list"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Backend Health Components\r\nReal-time health status of all backend components behind **{SelectedRuleForHealth}**"
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "health-dashboard"
+      },
+      "name": "text - backend health header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand rule = properties.loadBalancingRules\r\n| where rule.name == \"{SelectedRuleForHealth}\"\r\n| extend BackendPoolNameFromRule = tostring(split(rule.properties.backendAddressPool.id, '/')[-1])\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend CurrentPoolName = tostring(backendPool.name)\r\n| where CurrentPoolName == BackendPoolNameFromRule\r\n| mv-expand address = backendPool.properties.loadBalancerBackendAddresses\r\n| extend IPAddress = tostring(address.properties.ipAddress)\r\n| extend NICId = tostring(address.properties.networkInterfaceIPConfiguration.id)\r\n| extend VMName = coalesce(split(NICId, '/')[-3], 'External IP')\r\n| project ['IP Address'] = IPAddress, ['VM/Target'] = VMName, ['Status'] = 'Querying API...', ['Reason'] = 'Retrieving health...'",
+        "size": 0,
+        "title": "Backend Health Status",
+        "noDataMessage": "Select a rule above to view backend health.",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Status",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Up",
+                    "representation": "green",
+                    "text": "Up"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Down",
+                    "representation": "red",
+                    "text": "Down"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "gray",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 10000,
+          "filter": true
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "health-dashboard"
+      },
+      "name": "query - backend health grid"
     },
     {
       "type": 10,

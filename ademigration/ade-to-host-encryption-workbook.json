@@ -1,0 +1,785 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# 🔐 Azure Disk Encryption → Encryption at Host Migration Tracker\n\n**Azure Disk Encryption (ADE) will be retired on September 15, 2028.**\nAfter that date, ADE-encrypted disks will fail to unlock after VM reboots.\n\nThis workbook helps you identify:\n- Which VMs use ADE (extension-based encryption) and need migration\n- Which VMs already use Encryption at Host\n- Disk-level encryption details (PMK, CMK, ADE)\n- **Disks with residual `encryptionSettingsCollection` flag** that block Encryption at Host (even after ADE removal)\n\n> 💡 **Recommended action:** Migrate from ADE to [Encryption at Host](https://learn.microsoft.com/en-us/azure/virtual-machines/disk-encryption-overview#encryption-at-host). No in-place migration is available — VMs and disks must be recreated.\n\n> ⚠️ **Important:** Removing the ADE extension does NOT clear the disk-level `encryptionSettingsCollection` flag. Disks with this flag **cannot** have Encryption at Host enabled. The disk must be recreated via VHD Upload. See the **🚫 Blocked** tab.\n\n---"
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "sub-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscriptions",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "rg-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroups",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "resources\n| where type == 'microsoft.compute/virtualmachines'\n| summarize by resourceGroup\n| order by resourceGroup asc\n| project value = resourceGroup, label = resourceGroup",
+            "crossComponentResources": [
+              "{Subscriptions}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-overview",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "📊 Overview",
+            "subTarget": "overview",
+            "style": "link"
+          },
+          {
+            "id": "tab-ade",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "⚠️ VMs with ADE (Action Required)",
+            "subTarget": "ade",
+            "style": "link"
+          },
+          {
+            "id": "tab-allvms",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "🖥️ All VMs Encryption Status",
+            "subTarget": "allvms",
+            "style": "link"
+          },
+          {
+            "id": "tab-disks",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "💾 Disk Encryption Details",
+            "subTarget": "disks",
+            "style": "link"
+          },
+          {
+            "id": "tab-blocked",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "🚫 Blocked from Host Encryption",
+            "subTarget": "blocked",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend vmId = tolower(id)\n| extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId, adeExtension = name\n) on vmId\n| extend encryptionMethod = case(\n    isnotempty(adeExtension) and encryptionAtHost == true, 'ADE + Host Encryption',\n    isnotempty(adeExtension), 'ADE (Extension) ⚠️',\n    encryptionAtHost == true, 'Encryption at Host ✅',\n    'Platform Managed (SSE-PMK)'\n)\n| summarize Count = count() by encryptionMethod\n| order by Count desc",
+              "size": 3,
+              "title": "VM Encryption Distribution",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "ADE (Extension) ⚠️",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Encryption at Host ✅",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "ADE + Host Encryption",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Platform Managed (SSE-PMK)",
+                    "color": "blue"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "encryptionPieChart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend vmId = tolower(id)\n| extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId, adeExtension = name\n) on vmId\n| extend encryptionMethod = case(\n    isnotempty(adeExtension) and encryptionAtHost == true, 'ADE + Host Encryption',\n    isnotempty(adeExtension), 'ADE (Extension)',\n    encryptionAtHost == true, 'Encryption at Host',\n    'Platform Managed (SSE-PMK)'\n)\n| summarize Count = count() by encryptionMethod\n| extend Status = case(\n    encryptionMethod == 'ADE (Extension)', '🔴 Migration Required',\n    encryptionMethod == 'ADE + Host Encryption', '🟡 Remove ADE Extension',\n    encryptionMethod == 'Encryption at Host', '🟢 Compliant',\n    '🔵 Default Encryption'\n)\n| project encryptionMethod, Count, Status\n| order by Count desc",
+              "size": 3,
+              "title": "Encryption Summary Counts",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "encryptionMethod",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Count",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                },
+                "subtitleContent": {
+                  "columnMatch": "Status",
+                  "formatter": 1
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "customWidth": "50",
+            "name": "encryptionTiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend vmId = tolower(id)\n| extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId, adeExtension = name\n) on vmId\n| extend encryptionMethod = case(\n    isnotempty(adeExtension) and encryptionAtHost == true, 'ADE + Host Encryption',\n    isnotempty(adeExtension), 'ADE (Extension)',\n    encryptionAtHost == true, 'Encryption at Host',\n    'Platform Managed (SSE-PMK)'\n)\n| summarize Count = count() by subscriptionId, encryptionMethod\n| order by subscriptionId asc, encryptionMethod asc",
+              "size": 0,
+              "title": "Encryption Method by Subscription",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "barchart",
+              "chartSettings": {
+                "xAxis": "subscriptionId",
+                "yAxis": [
+                  "Count"
+                ],
+                "group": "encryptionMethod",
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "ADE (Extension)",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Encryption at Host",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "ADE + Host Encryption",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Platform Managed (SSE-PMK)",
+                    "color": "blue"
+                  }
+                ]
+              }
+            },
+            "name": "encryptionBySubscription"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "overview"
+      },
+      "name": "overviewGroup"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### ⚠️ VMs with Azure Disk Encryption Extension\nThese VMs use the **ADE extension** (`AzureDiskEncryption` or `AzureDiskEncryptionForLinux`) and **must be migrated** before September 15, 2028.\n\n> Migration requires creating new VMs and disks — no in-place migration is available."
+            },
+            "name": "adeWarning"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines/extensions'\n| where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n| extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n| extend vmName = tostring(split(vmId, '/')[8])\n| extend provisioningState = tostring(properties.provisioningState)\n| extend extensionType = name\n| extend autoUpgradeMinorVersion = tostring(properties.autoUpgradeMinorVersion)\n| extend typeHandlerVersion = tostring(properties.typeHandlerVersion)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines'\n    | extend vmId = tolower(id)\n    | extend osType = tostring(properties.storageProfile.osDisk.osType)\n    | extend vmSize = tostring(properties.hardwareProfile.vmSize)\n    | extend powerState = tostring(properties.extended.instanceView.powerState.code)\n    | extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n    | project vmId, osType, vmSize, powerState, encryptionAtHost, resourceGroup, subscriptionId, location\n) on vmId\n| extend migrationStatus = case(\n    encryptionAtHost == true, '🟡 Host Encryption enabled — remove ADE extension',\n    '🔴 Migration needed'\n)\n| project\n    vmName,\n    resourceGroup,\n    subscriptionId,\n    location,\n    osType,\n    vmSize,\n    extensionType,\n    typeHandlerVersion,\n    provisioningState,\n    encryptionAtHost,\n    migrationStatus\n| order by migrationStatus asc, vmName asc",
+              "size": 0,
+              "title": "VMs with ADE Extension — Migration Required",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "migrationStatus",
+                    "formatter": 1,
+                    "formatOptions": {
+                      "customColumnWidthSetting": "30ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "encryptionAtHost",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "true",
+                          "representation": "success",
+                          "text": "Yes"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "disabled",
+                          "text": "No"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "provisioningState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Succeeded",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "warning",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "migrationStatus",
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            },
+            "name": "adeVMsList"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines/extensions'\n| where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n| extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines'\n    | extend vmId = tolower(id)\n    | extend osType = tostring(properties.storageProfile.osDisk.osType)\n    | project vmId, osType\n) on vmId\n| summarize Count = count() by osType\n| order by Count desc",
+              "size": 3,
+              "title": "ADE VMs by OS Type",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "adeByOS"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines/extensions'\n| where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n| extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines'\n    | extend vmId = tolower(id)\n    | project vmId, resourceGroup\n) on vmId\n| summarize Count = count() by resourceGroup\n| order by Count desc\n| take 20",
+              "size": 0,
+              "title": "ADE VMs by Resource Group (Top 20)",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "adeByRG"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "ade"
+      },
+      "name": "adeGroup"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### 🖥️ All VMs — Encryption Status\nComplete inventory of all virtual machines and their current encryption configuration."
+            },
+            "name": "allVmsHeader"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/virtualmachines'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend vmId = tolower(id)\n| extend osType = tostring(properties.storageProfile.osDisk.osType)\n| extend vmSize = tostring(properties.hardwareProfile.vmSize)\n| extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n| extend securityType = tostring(properties.securityProfile.securityType)\n| extend powerState = tostring(properties.extended.instanceView.powerState.code)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId, adeExtension = name\n) on vmId\n| extend hasADE = isnotempty(adeExtension)\n| extend encryptionMethod = case(\n    hasADE and encryptionAtHost == true, '🟡 ADE + Host Encryption',\n    hasADE, '🔴 ADE (Extension)',\n    encryptionAtHost == true, '🟢 Encryption at Host',\n    securityType =~ 'ConfidentialVM', '🟢 Confidential VM',\n    '🔵 Platform Managed (SSE)'\n)\n| project\n    name,\n    resourceGroup,\n    subscriptionId,\n    location,\n    osType,\n    vmSize,\n    encryptionMethod,\n    hasADE,\n    encryptionAtHost,\n    securityType,\n    powerState\n| order by encryptionMethod asc, name asc",
+              "size": 0,
+              "title": "All VMs — Encryption Configuration",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "encryptionMethod",
+                    "formatter": 1,
+                    "formatOptions": {
+                      "customColumnWidthSetting": "30ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "hasADE",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "true",
+                          "representation": "warning",
+                          "text": "Yes ⚠️"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "success",
+                          "text": "No"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "encryptionAtHost",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "true",
+                          "representation": "success",
+                          "text": "Yes"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "disabled",
+                          "text": "No"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "encryptionMethod",
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            },
+            "name": "allVmsTable"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "allvms"
+      },
+      "name": "allVmsGroup"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### 💾 Disk-Level Encryption Details\nShows encryption configuration for each managed disk, including encryption type and Disk Encryption Set (DES) association."
+            },
+            "name": "disksHeader"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend encryptionType = tostring(properties.encryption.type)\n| extend diskEncryptionSetId = tostring(properties.encryption.diskEncryptionSetId)\n| extend desName = iff(isnotempty(diskEncryptionSetId), tostring(split(diskEncryptionSetId, '/')[8]), '')\n| extend diskState = tostring(properties.diskState)\n| extend diskSizeGB = toint(properties.diskSizeGB)\n| extend osType = tostring(properties.osType)\n| extend sku = tostring(sku.name)\n| extend managedBy = tostring(properties.managedBy)\n| extend vmName = iff(isnotempty(managedBy), tostring(split(managedBy, '/')[8]), 'Unattached')\n| extend encryptionLabel = case(\n    encryptionType =~ 'EncryptionAtRestWithPlatformKey', '🔵 SSE with Platform Key',\n    encryptionType =~ 'EncryptionAtRestWithCustomerKey', '🟣 SSE with Customer Key (CMK)',\n    encryptionType =~ 'EncryptionAtRestWithPlatformAndCustomerKeys', '🟣 SSE with Platform + Customer Key',\n    '🔵 Platform Managed'\n)\n| project\n    name,\n    resourceGroup,\n    subscriptionId,\n    location,\n    vmName,\n    osType,\n    diskState,\n    diskSizeGB,\n    sku,\n    encryptionType,\n    encryptionLabel,\n    desName\n| order by vmName asc, name asc",
+              "size": 0,
+              "title": "Managed Disks — Encryption Configuration",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "encryptionLabel",
+                    "formatter": 1,
+                    "formatOptions": {
+                      "customColumnWidthSetting": "35ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "diskState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Attached",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Unattached",
+                          "representation": "warning",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "unknown",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "vmName",
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            },
+            "name": "disksTable"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend encryptionType = tostring(properties.encryption.type)\n| extend encryptionLabel = case(\n    encryptionType =~ 'EncryptionAtRestWithPlatformKey', 'SSE Platform Key',\n    encryptionType =~ 'EncryptionAtRestWithCustomerKey', 'SSE Customer Key (CMK)',\n    encryptionType =~ 'EncryptionAtRestWithPlatformAndCustomerKeys', 'SSE Platform + Customer Key',\n    'Platform Managed'\n)\n| summarize Count = count(), TotalSizeGB = sum(toint(properties.diskSizeGB)) by encryptionLabel\n| order by Count desc",
+              "size": 3,
+              "title": "Disk Encryption Type Distribution",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "diskEncryptionPie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend diskState = tostring(properties.diskState)\n| summarize Count = count(), TotalSizeGB = sum(toint(properties.diskSizeGB)) by diskState\n| order by Count desc",
+              "size": 3,
+              "title": "Disk Attachment Status",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "diskStatePie"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "disks"
+      },
+      "name": "disksGroup"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### 🚫 Disks with ADE Residual Flag (Blocked from Encryption at Host)\n\nEven after removing the ADE extension and decrypting disks, Azure stamps an **`encryptionSettingsCollection`** metadata flag on the disk resource. This flag **persists** and **blocks Encryption at Host** from being enabled.\n\n> **Error you'll see:** *\"Encryption at host is not allowed for a VM having disks that were encrypted with Azure Disk Encryption.\"*\n\n**Resolution:** There is no way to clear this flag in-place. You must **recreate the disk** using the VHD Upload method to get a clean disk without the ADE stamp. See [Microsoft migration guide](https://learn.microsoft.com/en-us/azure/virtual-machines/disk-encryption-migrate).\n\n---"
+            },
+            "name": "blockedHeader"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| where tobool(properties.encryptionSettingsCollection.enabled) == true\n| extend diskName = name\n| extend diskState = tostring(properties.diskState)\n| extend diskSizeGB = toint(properties.diskSizeGB)\n| extend osType = tostring(properties.osType)\n| extend sku = tostring(sku.name)\n| extend managedBy = tostring(properties.managedBy)\n| extend vmName = iff(isnotempty(managedBy), tostring(split(managedBy, '/')[8]), 'Unattached')\n| extend encryptionType = tostring(properties.encryption.type)\n| extend encSettingsEnabled = tostring(properties.encryptionSettingsCollection.enabled)\n| extend encSettingsVersion = tostring(properties.encryptionSettingsCollection.encryptionSettingsVersion)\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines'\n    | extend vmId = tolower(id)\n    | extend encryptionAtHost = tobool(properties.securityProfile.encryptionAtHost)\n    | project vmId, encryptionAtHost\n) on $left.managedBy == $right.vmId\n| extend hostEncryptionBlocked = iff(encSettingsEnabled == 'true', '🔴 Blocked', '🟢 Clear')\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId, adeExtensionPresent = true\n) on $left.managedBy == $right.vmId\n| extend adeExtensionStillPresent = iff(isnotempty(adeExtensionPresent), '⚠️ Yes', '✅ Removed')\n| project\n    diskName,\n    vmName,\n    resourceGroup,\n    subscriptionId,\n    location,\n    osType,\n    diskState,\n    diskSizeGB,\n    sku,\n    hostEncryptionBlocked,\n    adeExtensionStillPresent,\n    encSettingsVersion,\n    encryptionType\n| order by vmName asc, diskName asc",
+              "size": 0,
+              "title": "Disks with encryptionSettingsCollection Flag — Cannot Enable Host Encryption",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "hostEncryptionBlocked",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Blocked",
+                          "representation": "error",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "success",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "adeExtensionStillPresent",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Yes",
+                          "representation": "warning",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "success",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "diskState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Attached",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Unattached",
+                          "representation": "warning",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "unknown",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "vmName",
+                    "sortOrder": 1
+                  }
+                ]
+              }
+            },
+            "name": "blockedDisksTable"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| extend hasADEFlag = tobool(properties.encryptionSettingsCollection.enabled) == true\n| extend managedBy = tostring(properties.managedBy)\n| extend vmName = iff(isnotempty(managedBy), tostring(split(managedBy, '/')[8]), 'Unattached')\n| summarize\n    totalDisks = count(),\n    flaggedDisks = countif(hasADEFlag),\n    cleanDisks = countif(not(hasADEFlag))\n    by bin(1,1)\n| project\n    ['Total Disks'] = totalDisks,\n    ['🔴 ADE Flag Present (Blocked)'] = flaggedDisks,\n    ['🟢 Clean (No Flag)'] = cleanDisks,\n    ['Migration Progress %'] = round(100.0 * cleanDisks / totalDisks, 1)",
+              "size": 3,
+              "title": "ADE Flag Summary Across All Disks",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "🔴 ADE Flag Present (Blocked)",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "redBright"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                },
+                "showBorder": true
+              }
+            },
+            "customWidth": "50",
+            "name": "adeFlagSummary"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "resources\n| where type == 'microsoft.compute/disks'\n| where '*' in~ ({ResourceGroups}) or resourceGroup in~ ({ResourceGroups})\n| where tobool(properties.encryptionSettingsCollection.enabled) == true\n| extend managedBy = tostring(properties.managedBy)\n| extend vmName = iff(isnotempty(managedBy), tostring(split(managedBy, '/')[8]), 'Unattached')\n| join kind=leftouter (\n    resources\n    | where type == 'microsoft.compute/virtualmachines/extensions'\n    | where name in~ ('AzureDiskEncryption', 'AzureDiskEncryptionForLinux')\n    | extend vmId = tolower(tostring(split(id, '/extensions/')[0]))\n    | project vmId\n) on $left.managedBy == $right.vmId\n| extend status = case(\n    isnotempty(vmId), 'ADE Extension Still Present',\n    managedBy == '', 'Unattached Disk with Flag',\n    'ADE Removed but Flag Remains'\n)\n| summarize Count = count() by status\n| order by Count desc",
+              "size": 3,
+              "title": "Flagged Disks — Migration State Breakdown",
+              "queryType": 1,
+              "resourceType": "microsoft.resourcegraph/resources",
+              "crossComponentResources": [
+                "{Subscriptions}"
+              ],
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "ADE Extension Still Present",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "ADE Removed but Flag Remains",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Unattached Disk with Flag",
+                    "color": "gray"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "flaggedDiskBreakdown"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "blocked"
+      },
+      "name": "blockedGroup"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
