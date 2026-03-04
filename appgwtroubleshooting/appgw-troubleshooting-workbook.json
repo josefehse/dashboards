@@ -333,7 +333,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({RuleName}) or ruleName_s in ({RuleName})\n| where '*' in ({ListenerName}) or listenerName_s in ({ListenerName})\n| where '*' in ({BackendPool}) or backendPoolName_s in ({BackendPool})\n| where '*' in ({ErrorInfo}) or error_info_s in ({ErrorInfo})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize\n    TotalRequests = count(),\n    FailedRequests = countif(httpStatus_d >= 400),\n    AvgLatencyMs = round(avg(timeTaken_d), 2),\n    P95LatencyMs = round(percentile(timeTaken_d, 95), 2),\n    UniqueClients = dcount(clientIP_s),\n    TotalSentBytes = sum(sentBytes_d),\n    TotalReceivedBytes = sum(receivedBytes_d)",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({RuleName}) or ruleName_s in ({RuleName})\n| where '*' in ({ListenerName}) or listenerName_s in ({ListenerName})\n| where '*' in ({BackendPool}) or backendPoolName_s in ({BackendPool})\n| where '*' in ({ErrorInfo}) or error_info_s in ({ErrorInfo})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize\n    TotalRequests = count(),\n    FailedRequests = countif(httpStatus_d >= 400),\n    AvgLatencyMs = round(avg(timeTaken_d), 2),\n    P95LatencyMs = round(percentile(timeTaken_d, 95), 2),\n    UniqueClients = dcount(clientIP_s),\n    TotalSentMB = round(sum(sentBytes_d) / 1048576.0, 2),\n    TotalReceivedMB = round(sum(receivedBytes_d) / 1048576.0, 2)\n| project Metric = pack_array('Total Requests', 'Failed Requests', 'Avg Latency (ms)', 'P95 Latency (ms)', 'Unique Clients', 'Sent (MB)', 'Received (MB)'), Value = pack_array(TotalRequests, FailedRequests, AvgLatencyMs, P95LatencyMs, UniqueClients, TotalSentMB, TotalReceivedMB)\n| mv-expand Metric to typeof(string), Value to typeof(real)",
               "size": 4,
               "title": "Key Metrics",
               "timeContext": {
@@ -347,8 +347,26 @@
               ],
               "visualization": "tiles",
               "tileSettings": {
-                "titleContent": {},
-                "showBorder": true
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
               }
             },
             "name": "overview-tiles"
