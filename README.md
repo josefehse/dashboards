@@ -8,6 +8,7 @@ A collection of Azure Workbooks and Grafana dashboards for monitoring, auditing,
 |-----------|------|--------|-------------|
 | [ADE to Host Encryption Migration](#ade-to-host-encryption-migration) | Azure Workbook | `ademigration/` | Track VM encryption status and plan migration from Azure Disk Encryption to Encryption at Host |
 | [Application Gateway Configuration](#application-gateway-configuration) | Azure Workbook | `appgw/` | View and audit Application Gateway settings, backend health, listeners, and routing rules |
+| [Application Gateway Troubleshooting](#application-gateway-troubleshooting) | Azure Workbook | `appgwtroubleshooting/` | Investigate access log errors, latency, and backend issues with drill-down filters |
 | [Entra ID Sign-in Analysis](#entra-id-sign-in-analysis) | Azure Workbook / Grafana | `entraID/` | Analyze sign-in patterns and track ADAL-to-MSAL migration progress |
 | [VNet Flow Log Analysis](#vnet-flow-log-analysis) | Azure Workbook | `flowlog/` | Analyze virtual network traffic flows, sources, destinations, and bandwidth usage |
 | [Load Balancer Configuration](#load-balancer-configuration) | Azure Workbook | `loadbalancers/` | Inventory all load balancers with backend pools, health probes, and rules |
@@ -31,6 +32,15 @@ Provides a comprehensive view of all Application Gateways in your subscriptions,
 
 - **Files:** `application-gateway-workbook.json`, `Deploy-AppGatewayWorkbook.ps1`
 - **Deployment script included** — see the [appgw README](appgw/README.md) for details.
+
+### Application Gateway Troubleshooting
+
+**Folder:** `appgwtroubleshooting/`
+
+Queries Application Gateway access logs (`AzureDiagnostics` / `ApplicationGatewayAccessLog`) to help investigate errors, latency spikes, and backend failures. Provides filters for subscription, gateway, rule, listener, backend pool, error category, and HTTP status. Includes five tabs: Overview, Error Analysis, Backend Health, Request Details, and Timeline.
+
+- **Files:** `appgw-troubleshooting-workbook.json`, `logsample.csv`
+- See the [appgwtroubleshooting README](appgwtroubleshooting/README.md) for details.
 
 ### Entra ID Sign-in Analysis
 
