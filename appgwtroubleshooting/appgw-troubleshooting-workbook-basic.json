@@ -1,0 +1,1075 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Application Gateway Troubleshooting Dashboard (Basic)\n\nUse this workbook to investigate Application Gateway access logs and identify errors. This version is for environments without extended App Gateway log fields (no listener, backend pool, or server-side columns)."
+      },
+      "name": "text-header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "p-timerange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 300000 },
+                { "durationMs": 900000 },
+                { "durationMs": 1800000 },
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 172800000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "p-subscription",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "label": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "p-workspace",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "label": "Log Analytics Workspace",
+            "type": 5,
+            "isRequired": true,
+            "query": "Resources\n| where type =~ 'microsoft.operationalinsights/workspaces'\n| order by name asc\n| project id, label = name, selected = false, group = resourceGroup",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources"
+          },
+          {
+            "id": "p-appgw",
+            "version": "KqlParameterItem/1.0",
+            "name": "ApplicationGateway",
+            "label": "Application Gateway",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| distinct Resource\n| order by Resource asc\n| project value = Resource, label = Resource",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 0
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "p-httpstatus",
+            "version": "KqlParameterItem/1.0",
+            "name": "HttpStatus",
+            "label": "HTTP Status",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend StatusCode = tostring(toint(httpStatus_d))\n| distinct StatusCode\n| order by StatusCode asc\n| project value = StatusCode, label = StatusCode",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 0
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-overview",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Overview",
+            "subTarget": "overview",
+            "style": "link"
+          },
+          {
+            "id": "tab-errors",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Error Analysis",
+            "subTarget": "errors",
+            "style": "link"
+          },
+          {
+            "id": "tab-requests",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Request Details",
+            "subTarget": "requests",
+            "style": "link"
+          },
+          {
+            "id": "tab-timeline",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Timeline",
+            "subTarget": "timeline",
+            "style": "link"
+          },
+          {
+            "id": "tab-waf",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "WAF",
+            "subTarget": "waf",
+            "style": "link"
+          },
+          {
+            "id": "tab-extended",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Extended Details",
+            "subTarget": "extended",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Overview\nHigh-level summary of Application Gateway traffic and errors for the selected filters."
+            },
+            "name": "text-overview-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize\n    TotalRequests = count(),\n    FailedRequests = countif(httpStatus_d >= 400),\n    AvgLatencyMs = round(avg(timeTaken_d), 2),\n    P95LatencyMs = round(percentile(timeTaken_d, 95), 2),\n    UniqueClients = dcount(clientIP_s),\n    TotalSentMB = round(sum(sentBytes_d) / 1048576.0, 2),\n    TotalReceivedMB = round(sum(receivedBytes_d) / 1048576.0, 2)\n| project Metric = pack_array('Total Requests', 'Failed Requests', 'Avg Latency (ms)', 'P95 Latency (ms)', 'Unique Clients', 'Sent (MB)', 'Received (MB)'), Value = pack_array(TotalRequests, FailedRequests, AvgLatencyMs, P95LatencyMs, UniqueClients, TotalSentMB, TotalReceivedMB)\n| mv-expand Metric to typeof(string), Value to typeof(real)",
+              "size": 4,
+              "title": "Key Metrics",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "name": "overview-tiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), StatusCategory = case(\n    httpStatus_d < 300, '2xx Success',\n    httpStatus_d < 400, '3xx Redirect',\n    httpStatus_d < 500, '4xx Client Error',\n    '5xx Server Error')\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Request Volume by Status Category",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  { "seriesName": "2xx Success", "color": "green" },
+                  { "seriesName": "3xx Redirect", "color": "blue" },
+                  { "seriesName": "4xx Client Error", "color": "orange" },
+                  { "seriesName": "5xx Server Error", "color": "red" }
+                ]
+              }
+            },
+            "name": "overview-status-timeline"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Requests = count(), Errors = countif(httpStatus_d >= 400), ErrorRate = round(100.0 * countif(httpStatus_d >= 400) / count(), 2) by Resource\n| order by Errors desc",
+              "size": 0,
+              "title": "Requests by Application Gateway",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ErrorRate",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redGreen"
+                    }
+                  },
+                  {
+                    "columnMatch": "Errors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "overview-by-gateway"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "overview"
+      },
+      "name": "group-overview"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Error Analysis\nBreakdown of errors by HTTP status code and request URI to help pinpoint the source of failures."
+            },
+            "name": "text-errors-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| where httpStatus_d >= 400\n| summarize Count = count() by HttpStatus = tostring(toint(httpStatus_d))\n| order by Count desc",
+              "size": 0,
+              "title": "Errors by HTTP Status Code",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "errors-by-status-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| where httpStatus_d >= 400\n| summarize Count = count() by HttpStatus = tostring(toint(httpStatus_d))\n| order by Count desc",
+              "size": 0,
+              "title": "Errors by HTTP Status Code",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "errors-by-status-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| where httpStatus_d >= 400\n| summarize Errors = count() by host_s, requestUri_s, httpMethod_s, HttpStatus = tostring(toint(httpStatus_d))\n| order by Errors desc\n| take 50",
+              "size": 0,
+              "title": "Top Errors by Host and URI",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Errors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "errors-by-host-uri"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| where httpStatus_d >= 400\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), HttpStatus = tostring(toint(httpStatus_d))\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Errors Over Time",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart"
+            },
+            "name": "errors-over-time"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "errors"
+      },
+      "name": "group-errors"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Request Details\nDrill down into individual requests matching the selected filters. Use this to investigate specific incidents."
+            },
+            "name": "text-requests-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Requests = count(), Errors = countif(httpStatus_d >= 400) by host_s, requestUri_s, httpMethod_s\n| order by Errors desc, Requests desc\n| take 50",
+              "size": 0,
+              "title": "Top Requested URIs",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table"
+            },
+            "name": "top-uris"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Requests = count(), Errors = countif(httpStatus_d >= 400), AvgLatencyMs = round(avg(timeTaken_d), 2) by clientIP_s\n| order by Errors desc, Requests desc\n| take 50",
+              "size": 0,
+              "title": "Top Client IPs",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table"
+            },
+            "name": "top-client-ips"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| project\n    TimeGenerated,\n    Resource,\n    clientIP_s,\n    httpMethod_s,\n    host_s,\n    requestUri_s,\n    HttpStatus = toint(httpStatus_d),\n    timeTaken_d,\n    sslEnabled_s,\n    userAgent_s,\n    clientPort_d,\n    sentBytes_d,\n    receivedBytes_d\n| order by TimeGenerated desc\n| take 250",
+              "size": 0,
+              "title": "Request Log (latest 250)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "HttpStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "<", "thresholdValue": "300", "representation": "green", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "400", "representation": "blue", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "500", "representation": "orange", "text": "{0}" },
+                        { "operator": "Default", "representation": "red", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "name": "request-log"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "requests"
+      },
+      "name": "group-requests"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Timeline\nVisualize traffic patterns, latency trends, and throughput over time."
+            },
+            "name": "text-timeline-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Requests = count() by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Request Volume Over Time",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "name": "timeline-volume"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize\n    AvgLatency = avg(timeTaken_d),\n    P50Latency = percentile(timeTaken_d, 50),\n    P95Latency = percentile(timeTaken_d, 95),\n    P99Latency = percentile(timeTaken_d, 99)\n    by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Latency Percentiles Over Time (ms)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  { "seriesName": "P99Latency", "color": "red" },
+                  { "seriesName": "P95Latency", "color": "orange" },
+                  { "seriesName": "P50Latency", "color": "blue" },
+                  { "seriesName": "AvgLatency", "color": "green" }
+                ]
+              }
+            },
+            "name": "timeline-latency"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize\n    SentMB = round(sum(sentBytes_d) / 1048576.0, 2),\n    ReceivedMB = round(sum(receivedBytes_d) / 1048576.0, 2)\n    by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Throughput Over Time (MB)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  { "seriesName": "SentMB", "color": "blue" },
+                  { "seriesName": "ReceivedMB", "color": "green" }
+                ]
+              }
+            },
+            "name": "timeline-throughput"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| summarize Requests = count() by bin(TimeGenerated, {TimeRange:grain}), host_s\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Requests by Host Over Time",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart"
+            },
+            "name": "timeline-by-host"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "timeline"
+      },
+      "name": "group-timeline"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### WAF Analysis\nWeb Application Firewall evaluation data extracted from the `AdditionalFields` column in `ApplicationGatewayAccessLog`."
+            },
+            "name": "text-waf-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode)\n| where isnotempty(WAFMode)\n| summarize\n    WAFEvaluatedRequests = count(),\n    AvgWAFEvalTimeSec = round(avg(todouble(AF.WAFEvaluationTime)), 4),\n    P95WAFEvalTimeSec = round(percentile(todouble(AF.WAFEvaluationTime), 95), 4),\n    UniqueClients = dcount(clientIP_s),\n    FailedRequests = countif(httpStatus_d >= 400)\n| project Metric = pack_array('WAF Evaluated Requests', 'Failed Requests', 'Unique Clients', 'Avg WAF Eval Time (s)', 'P95 WAF Eval Time (s)'), Value = pack_array(WAFEvaluatedRequests, FailedRequests, UniqueClients, AvgWAFEvalTimeSec, P95WAFEvalTimeSec)\n| mv-expand Metric to typeof(string), Value to typeof(real)",
+              "size": 4,
+              "title": "WAF Summary",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 4
+                    }
+                  }
+                },
+                "showBorder": true,
+                "size": "auto"
+              }
+            },
+            "name": "waf-summary-tiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode), WAFPolicyID = tostring(AF.WAFPolicyID)\n| where isnotempty(WAFMode)\n| summarize Requests = count(), AvgWAFEvalTimeSec = round(avg(todouble(AF.WAFEvaluationTime)), 4) by WAFMode, WAFPolicy = extract(@'/([^/]+)$', 1, WAFPolicyID)\n| order by Requests desc",
+              "size": 0,
+              "title": "Requests by WAF Mode and Policy",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table"
+            },
+            "customWidth": "50",
+            "name": "waf-mode-policy"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode)\n| where isnotempty(WAFMode)\n| summarize AvgWAFEvalTimeSec = avg(todouble(AF.WAFEvaluationTime)) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "WAF Evaluation Time Over Time",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart"
+            },
+            "customWidth": "50",
+            "name": "waf-eval-time-over-time"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode)\n| where isnotempty(WAFMode)\n| summarize Requests = count(), Errors = countif(httpStatus_d >= 400) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "WAF-Evaluated Requests Over Time",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  { "seriesName": "Requests", "color": "blue" },
+                  { "seriesName": "Errors", "color": "red" }
+                ]
+              }
+            },
+            "name": "waf-requests-over-time"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode), ErrorInfo = tostring(AF.error_info)\n| where isnotempty(WAFMode)\n| where httpStatus_d >= 400 or (isnotempty(ErrorInfo) and ErrorInfo != 'ERRORINFO_NO_ERROR')\n| summarize Count = count() by clientIP_s, host_s, requestUri_s, HttpStatus = tostring(toint(httpStatus_d)), ErrorInfo\n| order by Count desc\n| take 50",
+              "size": 0,
+              "title": "WAF-Evaluated Requests with Errors",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "waf-errors-detail"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend WAFMode = tostring(AF.WAFMode)\n| where isnotempty(WAFMode)\n| project\n    TimeGenerated,\n    Resource,\n    clientIP_s,\n    httpMethod_s,\n    host_s,\n    requestUri_s,\n    HttpStatus = toint(httpStatus_d),\n    WAFMode,\n    WAFEvalTimeSec = tostring(AF.WAFEvaluationTime),\n    WAFPolicy = extract(@'/([^/]+)$', 1, tostring(AF.WAFPolicyID)),\n    ErrorInfo = tostring(AF.error_info),\n    OriginalURI = tostring(AF.originalRequestUriWithArgs),\n    TransactionId = tostring(AF.transactionId)\n| order by TimeGenerated desc\n| take 250",
+              "size": 0,
+              "title": "WAF Request Log (latest 250)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "HttpStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "<", "thresholdValue": "300", "representation": "green", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "400", "representation": "blue", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "500", "representation": "orange", "text": "{0}" },
+                        { "operator": "Default", "representation": "red", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "name": "waf-request-log"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "waf"
+      },
+      "name": "group-waf"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": 0,
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Extended Details (from AdditionalFields)\nData extracted from the `AdditionalFields` JSON in access logs — includes SSL, backend routing, error info, server latency, and connection details."
+            },
+            "name": "text-extended-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| extend AF = parse_json(AdditionalFields)\n| extend ErrorInfo = tostring(AF.error_info)\n| where isnotempty(ErrorInfo)\n| summarize Count = count() by ErrorInfo\n| order by Count desc",
+              "size": 0,
+              "title": "Requests by Error Info",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "extended-error-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| extend AF = parse_json(AdditionalFields)\n| extend ErrorInfo = tostring(AF.error_info)\n| where isnotempty(ErrorInfo) and ErrorInfo != 'ERRORINFO_NO_ERROR'\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), ErrorInfo\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Errors Over Time (from AdditionalFields)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "linechart"
+            },
+            "customWidth": "50",
+            "name": "extended-errors-over-time"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend SslProtocol = tostring(AF.sslProtocol), SslCipher = tostring(AF.sslCipher)\n| where isnotempty(SslProtocol)\n| summarize Count = count() by SslProtocol, SslCipher\n| order by Count desc",
+              "size": 0,
+              "title": "Client SSL/TLS Protocol and Cipher",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "extended-ssl-client"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| extend AF = parse_json(AdditionalFields)\n| extend BackendSslProtocol = tostring(AF.backendSslProtocol), BackendSslCipher = tostring(AF.backendSslCipher)\n| where isnotempty(BackendSslProtocol)\n| summarize Count = count() by BackendSslProtocol, BackendSslCipher\n| order by Count desc",
+              "size": 0,
+              "title": "Backend SSL/TLS Protocol and Cipher",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "extended-ssl-backend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| extend AF = parse_json(AdditionalFields)\n| extend\n    ServerRouted = tostring(AF.serverRouted),\n    ServerStatus = tostring(AF.serverStatus),\n    BackendPool = tostring(AF.backendPoolName),\n    BackendSetting = tostring(AF.backendSettingName),\n    Listener = tostring(AF.listenerName)\n| where isnotempty(ServerRouted)\n| summarize\n    Requests = count(),\n    Errors = countif(toint(ServerStatus) >= 400 or ServerStatus == '-'),\n    AvgServerLatency = round(avg(todouble(AF.serverResponseLatency)) * 1000, 2),\n    AvgConnectTime = round(avg(todouble(AF.serverConnectTime)) * 1000, 2),\n    AvgHeaderTime = round(avg(todouble(AF.serverHeaderTime)) * 1000, 2)\n    by ServerRouted, BackendPool, Listener\n| order by Errors desc, Requests desc",
+              "size": 0,
+              "title": "Backend Server Performance (from AdditionalFields)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Errors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  },
+                  {
+                    "columnMatch": "AvgServerLatency",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "yellowOrangeRed"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "extended-backend-performance"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureDiagnostics\n| where Category == 'ApplicationGatewayAccessLog'\n| where '*' in ({ApplicationGateway}) or Resource in ({ApplicationGateway})\n| where '*' in ({HttpStatus}) or tostring(toint(httpStatus_d)) in ({HttpStatus})\n| extend AF = parse_json(AdditionalFields)\n| project\n    TimeGenerated,\n    Resource,\n    clientIP_s,\n    httpMethod_s,\n    host_s,\n    requestUri_s,\n    HttpStatus = toint(httpStatus_d),\n    OriginalURI = tostring(AF.originalRequestUriWithArgs),\n    OriginalHost = tostring(AF.originalHost),\n    ErrorInfo = tostring(AF.error_info),\n    ServerRouted = tostring(AF.serverRouted),\n    ServerStatus = tostring(AF.serverStatus),\n    ServerLatency = tostring(AF.serverResponseLatency),\n    ConnectTime = tostring(AF.serverConnectTime),\n    HeaderTime = tostring(AF.serverHeaderTime),\n    Listener = tostring(AF.listenerName),\n    BackendPool = tostring(AF.backendPoolName),\n    SslProtocol = tostring(AF.sslProtocol),\n    SslCipher = tostring(AF.sslCipher),\n    WAFMode = tostring(AF.WAFMode),\n    TransactionId = tostring(AF.transactionId)\n| order by TimeGenerated desc\n| take 250",
+              "size": 0,
+              "title": "Extended Request Log (latest 250)",
+              "timeContext": {
+                "durationMs": 0
+              },
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "HttpStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "<", "thresholdValue": "300", "representation": "green", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "400", "representation": "blue", "text": "{0}" },
+                        { "operator": "<", "thresholdValue": "500", "representation": "orange", "text": "{0}" },
+                        { "operator": "Default", "representation": "red", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "name": "extended-request-log"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "extended"
+      },
+      "name": "group-extended"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
