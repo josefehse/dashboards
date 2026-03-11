@@ -1,6 +1,6 @@
-# Azure Monitoring Dashboards
+# Azure Monitoring Dashboards & Tools
 
-A collection of Azure Workbooks and Grafana dashboards for monitoring, auditing, and managing Azure infrastructure. Each dashboard provides deep visibility into specific Azure services to help with day-to-day operations, security posture, and migration planning.
+A collection of Azure Workbooks, Grafana dashboards, and operational tools for monitoring, auditing, and managing Azure infrastructure.
 
 ## Dashboards
 
@@ -97,3 +97,18 @@ For the **Grafana** dashboard (`entraidWB-grafana.json`), import it through your
 - **Azure Monitor** metrics access
 - For Entra ID dashboards: access to Azure AD sign-in logs
 - For Grafana dashboards: a Grafana instance with an Azure Monitor data source configured
+
+## Tools
+
+| Tool | Folder | Description |
+|------|--------|-------------|
+| [Table Retention Manager](#table-retention-manager) | `tools/` | Bulk-manage Interactive and Total retention settings for Log Analytics workspace tables |
+
+### Table Retention Manager
+
+**Folder:** `tools/`
+
+PowerShell script to list, report, and update retention settings across all tables in a Log Analytics workspace. Supports default retention for all tables with optional per-table overrides via CSV. Includes confirmation prompts and exports a summary report.
+
+- **Files:** `Set-TableRetention.ps1`, `sample-overrides.csv`
+- See the [tools README](tools/README.md) for usage examples.
