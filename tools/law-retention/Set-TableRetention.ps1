@@ -169,6 +169,9 @@ if ($ActiveOnly) {
     # Always include custom tables (they were explicitly created)
     $customTableNames = @(($filteredTables | Where-Object { $_.properties.schema.tableType -eq "CustomLog" }).name)
 
+    # Always include these standard tables (present in every workspace even with no data)
+    $alwaysIncludeTableNames = @('Alert', 'AppCenterError', 'ComputerGroup', 'InsightsMetrics', 'Operation', 'Usage')
+
     # Call the Log Analytics metadata endpoint to get tables with hasData flag
     $activeTableNames = @()
     try {
@@ -195,8 +198,8 @@ if ($ActiveOnly) {
         Write-Warning "Falling back to custom tables only."
     }
 
-    # Combine: tables with hasData + custom tables
-    $allActiveNames = @($activeTableNames) + @($customTableNames) | Select-Object -Unique
+    # Combine: tables with hasData + custom tables + always-include tables
+    $allActiveNames = @($activeTableNames) + @($customTableNames) + @($alwaysIncludeTableNames) | Select-Object -Unique
     $filteredTables = $filteredTables | Where-Object { $_.name -in $allActiveNames }
     Write-Host "Filtered to $($filteredTables.Count) active table(s)." -ForegroundColor Cyan
 }
