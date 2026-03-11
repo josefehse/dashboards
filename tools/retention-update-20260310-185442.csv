@@ -1,5 +1,0 @@
-"Table","Plan","CurrentInteractiveDays","CurrentTotalDays","TargetInteractiveDays","TargetTotalDays","Source","Status"
-"addsmonitoring_CL","Analytics","31","31","-","-","N/A","Report Only"
-"Discovery_CL","Analytics","31","31","-","-","N/A","Report Only"
-"DiscoveryResults_CL","Analytics","31","31","-","-","N/A","Report Only"
-"NginxLogs_CL","Analytics","31","31","-","-","N/A","Report Only"
