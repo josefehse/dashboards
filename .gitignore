@@ -1,0 +1,2 @@
+# Ignore CSV files in tools folder
+tools/law-retention/retention*.csv
