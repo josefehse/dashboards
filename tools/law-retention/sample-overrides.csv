@@ -1,0 +1,4 @@
+TableName,InteractiveRetentionDays,TotalRetentionDays
+SecurityEvent,180,365
+Syslog,90,180
+AzureDiagnostics,90,365
