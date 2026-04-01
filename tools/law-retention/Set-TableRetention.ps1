@@ -294,13 +294,14 @@ foreach ($table in $filteredTables) {
             continue
         }
 
-        # Apply the update
-        $body = @{
-            properties = @{
-                retentionInDays      = $targetInteractive
-                totalRetentionInDays = $targetTotal
-            }
-        } | ConvertTo-Json -Depth 5
+        # Apply the update — Basic plan tables have immutable interactive retention
+        $bodyProps = @{
+            totalRetentionInDays = $targetTotal
+        }
+        if ($plan -ne "Basic") {
+            $bodyProps.retentionInDays = $targetInteractive
+        }
+        $body = @{ properties = $bodyProps } | ConvertTo-Json -Depth 5
 
         try {
             $updateResponse = Invoke-AzRestMethod -Method PATCH -Path "$basePath/tables/$($tableName)?api-version=$apiVersion" -Payload $body
