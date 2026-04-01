@@ -1,0 +1,14 @@
+{
+    "WebhookName": "startavm3",
+    "RequestBody": "[{\"id\":\"/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourcegroups/rg-mgmt/providers/microsoft.maintenance/maintenanceconfigurations/lxupdates/providers/microsoft.maintenance/applyupdates/20260326141000\",\"topic\":\"/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourcegroups/rg-mgmt/providers/microsoft.maintenance/maintenanceconfigurations/lxupdates\",\"subject\":\"lxupdates\",\"data\":{\"CorrelationId\":\"/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourcegroups/rg-mgmt/providers/microsoft.maintenance/maintenanceconfigurations/lxupdates/providers/microsoft.maintenance/applyupdates/20260326141000\",\"MaintenanceConfigurationId\":\"/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/resourcegroups/rg-mgmt/providers/microsoft.maintenance/maintenanceconfigurations/lxupdates\",\"StartDateTime\":\"2026-03-26T14:10:00.0000000Z\",\"EndDateTime\":\"2026-03-26T15:40:00.0000000Z\",\"CancellationCutOffDateTime\":\"2026-03-26T14:00:00.0000000Z\",\"ResourceSubscriptionIds\":[\"e315fe54-eae5-464d-8266-0f41a0908da8\"]},\"eventType\":\"Microsoft.Maintenance.PreMaintenanceEvent\",\"dataVersion\":\"1.0\",\"metadataVersion\":\"1\",\"eventTime\":\"2026-03-26T13:34:24.2909261Z\"}]",
+    "RequestHeader": {
+        "aeg-subscription-name": "START-VMS-PREPATCH",
+        "aeg-delivery-count": "0",
+        "aeg-metadata-version": "1",
+        "aeg-event-type": "Notification",
+        "aeg-data-version": "1.0",
+        "Connection": "Keep-Alive",
+        "Host": "c9dfb195-7d24-4fed-9135-3d358d15214a.webhook.cc.azure-automation.net",
+        "x-ms-request-id": "4c22632b-0420-46d4-a2bb-dc7ae4f3eeb3"
+    }
+}

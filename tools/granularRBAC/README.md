@@ -39,6 +39,7 @@ This means: *"Allow data reads **only** when the table and column value match th
 |--------|---------|
 | [`Grant-GranularRBAC.ps1`](#grant-granularrbacps1) | Onboard groups — create role assignments with ABAC conditions |
 | [`Revoke-GranularRBAC.ps1`](#revoke-granularrbacps1) | Offboard groups — find and remove matching role assignments |
+| [`Show-GranularRBAC.ps1`](#show-granularrbacps1) | Audit — display all granular RBAC assignments on a workspace |
 
 ---
 
@@ -145,6 +146,49 @@ Finds and removes granular RBAC role assignments that match the specified groups
     -GroupObjectIds "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" `
     -TableName "CommonSecurityLog" `
     -Force
+```
+
+---
+
+## 🔎 Show-GranularRBAC.ps1
+
+Retrieves and displays all role assignments with ABAC conditions on a workspace. Parses conditions to show table names, column names, and allowed values in a readable format.
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `WorkspaceResourceId` | ✅ | — | Full Azure resource ID of the Log Analytics workspace |
+| `GroupObjectId` | ❌ | — | Filter results to a specific Entra ID group |
+| `TableName` | ❌ | — | Filter results to assignments referencing a specific table |
+| `IncludeBroadRoles` | ❌ | — | Also show assignments without ABAC conditions |
+| `Detailed` | ❌ | — | Display full ABAC condition text |
+
+### What it does
+
+1. **Retrieves all role assignments** at the workspace scope
+2. **Parses ABAC conditions** to extract table, column, and value information
+3. **Displays a summary** of granular vs. broad access assignments
+4. **Lists each assignment** with principal, role, and access scope details
+5. **Returns structured objects** for pipeline usage (e.g., export to CSV)
+
+### Example
+
+```powershell
+# Show all granular RBAC assignments
+.\Show-GranularRBAC.ps1 `
+    -WorkspaceResourceId "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.OperationalInsights/workspaces/my-workspace"
+
+# Filter by table and show full condition text
+.\Show-GranularRBAC.ps1 `
+    -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
+    -TableName "CommonSecurityLog" `
+    -Detailed
+
+# Include broad roles and export to CSV
+.\Show-GranularRBAC.ps1 `
+    -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
+    -IncludeBroadRoles | Export-Csv -Path "rbac-audit.csv" -NoTypeInformation
 ```
 
 ---

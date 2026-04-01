@@ -10,8 +10,9 @@
 .PARAMETER WorkspaceResourceId
     Full resource ID of the Log Analytics workspace.
 
-.PARAMETER GroupObjectIds
-    One or more Entra ID group object IDs to revoke access from.
+.PARAMETER GroupNames
+    One or more Entra ID group display names to revoke access from.
+    Each name must resolve to exactly one group (duplicates will cause an error).
 
 .PARAMETER TableName
     The Log Analytics table name to match in the ABAC condition.
@@ -26,7 +27,7 @@
 .EXAMPLE
     .\Revoke-GranularRBAC.ps1 `
         -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
-        -GroupObjectIds "aaaa-bbbb-cccc" `
+        -GroupNames "FirewallAdmins" `
         -TableName "CommonSecurityLog"
 #>
 
@@ -36,7 +37,7 @@ param(
     [string]$WorkspaceResourceId,
 
     [Parameter(Mandatory)]
-    [string[]]$GroupObjectIds,
+    [string[]]$GroupNames,
 
     [Parameter(Mandatory)]
     [string]$TableName,
@@ -62,14 +63,40 @@ if (-not $context) {
 Write-Host "Logged in as: $($context.Account.Id)" -ForegroundColor Green
 #endregion
 
+#region --- Resolve group names to object IDs ---
+Write-Host "Resolving group names..." -ForegroundColor Cyan
+
+$resolvedGroups = @()
+foreach ($groupName in $GroupNames) {
+    $groups = @(Get-AzADGroup -DisplayName $groupName -ErrorAction SilentlyContinue)
+    
+    if ($groups.Count -eq 0) {
+        Write-Error "Group '$groupName' not found in Entra ID."
+        return
+    }
+    if ($groups.Count -gt 1) {
+        Write-Error "Multiple groups found with name '$groupName' (found $($groups.Count)). Use unique group names or specify Object IDs directly."
+        Write-Host "  Matching groups:" -ForegroundColor Yellow
+        $groups | ForEach-Object { Write-Host "    - $($_.DisplayName) (ID: $($_.Id))" -ForegroundColor Yellow }
+        return
+    }
+    
+    $resolvedGroups += [PSCustomObject]@{
+        Name     = $groupName
+        ObjectId = $groups[0].Id
+    }
+    Write-Host "  $groupName -> $($groups[0].Id)" -ForegroundColor Green
+}
+#endregion
+
 #region --- Find and remove assignments ---
 $results = @()
 
-foreach ($groupId in $GroupObjectIds) {
-    Write-Host "`nProcessing group: $groupId" -ForegroundColor Cyan
+foreach ($group in $resolvedGroups) {
+    Write-Host "`nProcessing group: $($group.Name) ($($group.ObjectId))" -ForegroundColor Cyan
 
     $assignments = Get-AzRoleAssignment `
-        -ObjectId $groupId `
+        -ObjectId $group.ObjectId `
         -Scope $WorkspaceResourceId `
         -ErrorAction SilentlyContinue |
         Where-Object {
@@ -78,10 +105,11 @@ foreach ($groupId in $GroupObjectIds) {
             $_.Condition -like "*$TableName*"
         }
 
-    if (-not $assignments -or $assignments.Count -eq 0) {
+    if (-not $assignments -or @($assignments).Count -eq 0) {
         Write-Host "  No matching granular RBAC assignments found." -ForegroundColor Yellow
         $results += [PSCustomObject]@{
-            GroupObjectId    = $groupId
+            GroupName        = $group.Name
+            GroupObjectId    = $group.ObjectId
             RoleAssignmentId = "N/A"
             Status           = "NotFound"
         }
@@ -95,7 +123,7 @@ foreach ($groupId in $GroupObjectIds) {
         $shouldRemove = $Force
         if (-not $Force) {
             if ($PSCmdlet.ShouldProcess(
-                "Assignment $($assignment.RoleAssignmentId) for group $groupId",
+                "Assignment $($assignment.RoleAssignmentId) for group $($group.Name)",
                 "Remove granular RBAC role assignment")) {
                 $shouldRemove = $true
             }
@@ -109,21 +137,24 @@ foreach ($groupId in $GroupObjectIds) {
 
                 Write-Host "  Removed successfully." -ForegroundColor Green
                 $results += [PSCustomObject]@{
-                    GroupObjectId    = $groupId
+                    GroupName        = $group.Name
+                    GroupObjectId    = $group.ObjectId
                     RoleAssignmentId = $assignment.RoleAssignmentId
                     Status           = "Removed"
                 }
             } catch {
                 Write-Error "  Failed to remove assignment: $_"
                 $results += [PSCustomObject]@{
-                    GroupObjectId    = $groupId
+                    GroupName        = $group.Name
+                    GroupObjectId    = $group.ObjectId
                     RoleAssignmentId = $assignment.RoleAssignmentId
                     Status           = "Failed: $_"
                 }
             }
         } else {
             $results += [PSCustomObject]@{
-                GroupObjectId    = $groupId
+                GroupName        = $group.Name
+                GroupObjectId    = $group.ObjectId
                 RoleAssignmentId = $assignment.RoleAssignmentId
                 Status           = "Skipped"
             }

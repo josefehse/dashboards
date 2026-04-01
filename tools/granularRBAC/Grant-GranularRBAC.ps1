@@ -14,8 +14,9 @@
     Full resource ID of the Log Analytics workspace.
     Example: /subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<name>
 
-.PARAMETER GroupObjectIds
-    One or more Entra ID group object IDs to grant access.
+.PARAMETER GroupNames
+    One or more Entra ID group display names to grant access.
+    Each name must resolve to exactly one group (duplicates will cause an error).
 
 .PARAMETER TableName
     The Log Analytics table to grant access to (e.g., CommonSecurityLog).
@@ -35,7 +36,7 @@
 .EXAMPLE
     .\Grant-GranularRBAC.ps1 `
         -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
-        -GroupObjectIds "aaaa-bbbb-cccc", "dddd-eeee-ffff" `
+        -GroupNames "FirewallAdmins", "NetworkOps" `
         -TableName "CommonSecurityLog" `
         -ColumnName "DeviceVendor" `
         -ColumnValues "Check Point", "SonicWall"
@@ -47,7 +48,7 @@ param(
     [string]$WorkspaceResourceId,
 
     [Parameter(Mandatory)]
-    [string[]]$GroupObjectIds,
+    [string[]]$GroupNames,
 
     [Parameter(Mandatory)]
     [string]$TableName,
@@ -84,6 +85,32 @@ if (-not $context) {
 Write-Host "Logged in as: $($context.Account.Id)" -ForegroundColor Green
 #endregion
 
+#region --- Resolve group names to object IDs ---
+Write-Host "Resolving group names..." -ForegroundColor Cyan
+
+$resolvedGroups = @()
+foreach ($groupName in $GroupNames) {
+    $groups = @(Get-AzADGroup -DisplayName $groupName -ErrorAction SilentlyContinue)
+    
+    if ($groups.Count -eq 0) {
+        Write-Error "Group '$groupName' not found in Entra ID."
+        return
+    }
+    if ($groups.Count -gt 1) {
+        Write-Error "Multiple groups found with name '$groupName' (found $($groups.Count)). Use unique group names or specify Object IDs directly."
+        Write-Host "  Matching groups:" -ForegroundColor Yellow
+        $groups | ForEach-Object { Write-Host "    - $($_.DisplayName) (ID: $($_.Id))" -ForegroundColor Yellow }
+        return
+    }
+    
+    $resolvedGroups += [PSCustomObject]@{
+        Name     = $groupName
+        ObjectId = $groups[0].Id
+    }
+    Write-Host "  $groupName -> $($groups[0].Id)" -ForegroundColor Green
+}
+#endregion
+
 #region --- Validate workspace ---
 Write-Host "Validating workspace..." -ForegroundColor Cyan
 try {
@@ -101,15 +128,15 @@ Write-Host "Checking for conflicting role assignments..." -ForegroundColor Cyan
 $broadRoles = @("Log Analytics Reader", "Reader", "Contributor", "Owner")
 $parentScope = ($WorkspaceResourceId -split "/providers/Microsoft.OperationalInsights")[0]
 
-foreach ($groupId in $GroupObjectIds) {
-    $existing = Get-AzRoleAssignment -ObjectId $groupId -Scope $WorkspaceResourceId -ErrorAction SilentlyContinue
-    $parentAssignments = Get-AzRoleAssignment -ObjectId $groupId -Scope $parentScope -ErrorAction SilentlyContinue
+foreach ($group in $resolvedGroups) {
+    $existing = Get-AzRoleAssignment -ObjectId $group.ObjectId -Scope $WorkspaceResourceId -ErrorAction SilentlyContinue
+    $parentAssignments = Get-AzRoleAssignment -ObjectId $group.ObjectId -Scope $parentScope -ErrorAction SilentlyContinue
 
     $allAssignments = @($existing) + @($parentAssignments) | Where-Object { $_ -ne $null }
 
     foreach ($assignment in $allAssignments) {
         if ($assignment.RoleDefinitionName -in $broadRoles -and [string]::IsNullOrEmpty($assignment.Condition)) {
-            Write-Warning ("Group '$groupId' has broad role '$($assignment.RoleDefinitionName)' at scope " +
+            Write-Warning ("Group '$($group.Name)' has broad role '$($assignment.RoleDefinitionName)' at scope " +
                 "'$($assignment.Scope)' without conditions. This may override the granular RBAC restriction.")
         }
     }
@@ -151,13 +178,13 @@ Write-Host "`nUsing role: $($roleDef.Name) ($($roleDef.Id))" -ForegroundColor Gr
 #region --- Create role assignments ---
 $results = @()
 
-foreach ($groupId in $GroupObjectIds) {
-    Write-Host "`nProcessing group: $groupId" -ForegroundColor Cyan
+foreach ($group in $resolvedGroups) {
+    Write-Host "`nProcessing group: $($group.Name) ($($group.ObjectId))" -ForegroundColor Cyan
 
-    if ($PSCmdlet.ShouldProcess("Group $groupId", "Assign '$RoleDefinitionName' with ABAC condition on $TableName")) {
+    if ($PSCmdlet.ShouldProcess("Group $($group.Name)", "Assign '$RoleDefinitionName' with ABAC condition on $TableName")) {
         try {
             $assignment = New-AzRoleAssignment `
-                -ObjectId $groupId `
+                -ObjectId $group.ObjectId `
                 -RoleDefinitionId $roleDef.Id `
                 -Scope $WorkspaceResourceId `
                 -Condition $condition `
@@ -165,22 +192,25 @@ foreach ($groupId in $GroupObjectIds) {
 
             Write-Host "  Role assignment created: $($assignment.RoleAssignmentId)" -ForegroundColor Green
             $results += [PSCustomObject]@{
-                GroupObjectId    = $groupId
+                GroupName        = $group.Name
+                GroupObjectId    = $group.ObjectId
                 RoleAssignmentId = $assignment.RoleAssignmentId
                 Status           = "Created"
             }
         } catch {
             if ($_.Exception.Message -like "*Conflict*" -or $_.Exception.Message -like "*already exists*") {
-                Write-Warning "  Role assignment already exists for group $groupId. Skipping."
+                Write-Warning "  Role assignment already exists for group $($group.Name). Skipping."
                 $results += [PSCustomObject]@{
-                    GroupObjectId    = $groupId
+                    GroupName        = $group.Name
+                    GroupObjectId    = $group.ObjectId
                     RoleAssignmentId = "N/A"
                     Status           = "AlreadyExists"
                 }
             } else {
-                Write-Error "  Failed to create role assignment for group $groupId : $_"
+                Write-Error "  Failed to create role assignment for group $($group.Name): $_"
                 $results += [PSCustomObject]@{
-                    GroupObjectId    = $groupId
+                    GroupName        = $group.Name
+                    GroupObjectId    = $group.ObjectId
                     RoleAssignmentId = "N/A"
                     Status           = "Failed: $_"
                 }
