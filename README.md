@@ -102,13 +102,34 @@ For the **Grafana** dashboard (`entraidWB-grafana.json`), import it through your
 
 | Tool | Folder | Description |
 |------|--------|-------------|
-| [Table Retention Manager](#table-retention-manager) | `tools/` | Bulk-manage Interactive and Total retention settings for Log Analytics workspace tables |
+| [Table Retention Manager](#table-retention-manager) | `tools/law-retention/` | Bulk-manage Interactive and Total retention settings for Log Analytics workspace tables |
+| [Granular RBAC Manager](#granular-rbac-manager) | `tools/granularRBAC/` | Grant, revoke, and audit row-level access control (ABAC) on Log Analytics tables |
 
 ### Table Retention Manager
 
-**Folder:** `tools/`
+**Folder:** `tools/law-retention/`
 
 PowerShell script to list, report, and update retention settings across all tables in a Log Analytics workspace. Supports default retention for all tables with optional per-table overrides via CSV. Includes confirmation prompts and exports a summary report.
 
 - **Files:** `Set-TableRetention.ps1`, `sample-overrides.csv`
-- See the [tools README](tools/README.md) for usage examples.
+- See the [law-retention README](tools/law-retention/README.md) for usage examples.
+
+### Granular RBAC Manager
+
+**Folder:** `tools/granularRBAC/`
+
+PowerShell scripts to automate row-level access control for Azure Monitor Log Analytics using [Granular RBAC (ABAC conditions)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/granular-rbac-log-analytics). Grant or revoke access for Entra ID groups to specific tables filtered by column values, and audit existing assignments.
+
+- **Scripts:**
+  - `Grant-GranularRBAC.ps1` — Create role assignments with ABAC conditions
+  - `Revoke-GranularRBAC.ps1` — Remove granular RBAC assignments
+  - `Show-GranularRBAC.ps1` — Audit all granular RBAC assignments on a workspace
+- See the [granularRBAC README](tools/granularRBAC/README.md) for usage examples.
+
+---
+
+## Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Always test in a non-production environment first. The authors are not responsible for any unintended changes, data exposure, or service disruptions resulting from the use of these tools. Use at your own risk.

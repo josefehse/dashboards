@@ -70,7 +70,7 @@ Creates role assignments with ABAC conditions for one or more Entra ID groups, r
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `WorkspaceResourceId` | ✅ | — | Full Azure resource ID of the Log Analytics workspace |
-| `GroupObjectIds` | ✅ | — | One or more Entra ID group object IDs |
+| `GroupNames` | ✅ | — | One or more Entra ID group display names |
 | `TableName` | ✅ | — | Log Analytics table name (e.g., `CommonSecurityLog`) |
 | `ColumnName` | ✅ | — | Column to filter on (e.g., `DeviceVendor`) |
 | `ColumnValues` | ✅ | — | Allowed value(s) for the column |
@@ -79,18 +79,19 @@ Creates role assignments with ABAC conditions for one or more Entra ID groups, r
 
 ### What it does
 
-1. **Validates** the workspace exists and you're authenticated
-2. **Checks for conflicting role assignments** — warns if the group already has broad roles (e.g., `Reader`, `Contributor`) at the workspace or parent scope that would override the restriction
-3. **Builds the ABAC condition** using the restrictive strategy
-4. **Creates role assignments** with the condition for each group
-5. **Reports a summary** of all actions taken
+1. **Resolves group names** to Object IDs (errors if name not found or duplicates exist)
+2. **Validates** the workspace exists and you're authenticated
+3. **Checks for conflicting role assignments** — warns if the group already has broad roles (e.g., `Reader`, `Contributor`) at the workspace or parent scope that would override the restriction
+4. **Builds the ABAC condition** using the restrictive strategy
+5. **Creates role assignments** with the condition for each group
+6. **Reports a summary** of all actions taken
 
 ### Example
 
 ```powershell
 .\Grant-GranularRBAC.ps1 `
     -WorkspaceResourceId "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-rg/providers/Microsoft.OperationalInsights/workspaces/my-workspace" `
-    -GroupObjectIds "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "ffffffff-1111-2222-3333-444444444444" `
+    -GroupNames "FirewallAdmins", "NetworkOps" `
     -TableName "CommonSecurityLog" `
     -ColumnName "DeviceVendor" `
     -ColumnValues "Check Point", "SonicWall"
@@ -101,7 +102,7 @@ Creates role assignments with ABAC conditions for one or more Entra ID groups, r
 ```powershell
 .\Grant-GranularRBAC.ps1 `
     -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
-    -GroupObjectIds "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" `
+    -GroupNames "FirewallAdmins" `
     -TableName "CommonSecurityLog" `
     -ColumnName "DeviceVendor" `
     -ColumnValues "Check Point" `
@@ -119,7 +120,7 @@ Finds and removes granular RBAC role assignments that match the specified groups
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
 | `WorkspaceResourceId` | ✅ | — | Full Azure resource ID of the Log Analytics workspace |
-| `GroupObjectIds` | ✅ | — | One or more Entra ID group object IDs |
+| `GroupNames` | ✅ | — | One or more Entra ID group display names |
 | `TableName` | ✅ | — | Table name to match in the ABAC condition |
 | `RoleDefinitionName` | ❌ | `Log Analytics Data Reader` | Role to filter on |
 | `-Force` | ❌ | — | Skip confirmation prompts |
@@ -127,9 +128,10 @@ Finds and removes granular RBAC role assignments that match the specified groups
 
 ### What it does
 
-1. **Finds role assignments** for each group at the workspace scope that have an ABAC condition referencing the specified table
-2. **Prompts for confirmation** before removing (unless `-Force` is used)
-3. **Removes the assignments** and reports results
+1. **Resolves group names** to Object IDs (errors if name not found or duplicates exist)
+2. **Finds role assignments** for each group at the workspace scope that have an ABAC condition referencing the specified table
+3. **Prompts for confirmation** before removing (unless `-Force` is used)
+4. **Removes the assignments** and reports results
 
 ### Example
 
@@ -137,13 +139,13 @@ Finds and removes granular RBAC role assignments that match the specified groups
 # Interactive (prompts for confirmation)
 .\Revoke-GranularRBAC.ps1 `
     -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
-    -GroupObjectIds "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" `
+    -GroupNames "FirewallAdmins" `
     -TableName "CommonSecurityLog"
 
 # Non-interactive
 .\Revoke-GranularRBAC.ps1 `
     -WorkspaceResourceId "/subscriptions/.../workspaces/my-workspace" `
-    -GroupObjectIds "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee" `
+    -GroupNames "FirewallAdmins" `
     -TableName "CommonSecurityLog" `
     -Force
 ```
@@ -195,7 +197,23 @@ Retrieves and displays all role assignments with ABAC conditions on a workspace.
 
 ## ⚠️ Important Notes
 
-- **Additive role assignments** — If a group already has a broad role like `Reader` or `Log Analytics Reader` without conditions at the same or higher scope, the granular restriction will **not** be effective. The grant script warns about this, but does not remove conflicting assignments automatically.
+### User Permissions
+
+Users with granular RBAC need **two** role assignments to access the workspace:
+
+| Role | Purpose | Has Data Access? |
+|------|---------|------------------|
+| **Reader** | See workspace in Azure portal | ❌ No |
+| **Log Analytics Data Reader** (with ABAC) | Query restricted table/rows | ✅ Restricted only |
+
+**Roles to avoid** (these grant broad data access and override granular RBAC):
+- `Log Analytics Reader`
+- `Monitoring Reader`
+- `Contributor` / `Owner`
+
+### Other Considerations
+
+- **Additive role assignments** — If a group already has a broad role like `Log Analytics Reader` without conditions at the same or higher scope, the granular restriction will **not** be effective. The grant script warns about this, but does not remove conflicting assignments automatically.
 - **Propagation delay** — Changes may take **up to 15 minutes** to take effect.
 - **Case sensitivity** — Table names and column values in conditions are case-sensitive. The scripts use `StringLikeIgnoreCase` for column values to reduce errors, but table names must match exactly.
 - **Condition limits** — The Azure portal visual editor supports up to 5 expressions. These scripts build conditions programmatically and are not limited by the portal UI.
@@ -229,3 +247,11 @@ You can audit whether conditions are being applied by querying the `LAQueryLogs`
 ## 📄 License
 
 MIT — use, modify, and distribute freely.
+
+---
+
+## ⚖️ Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+These scripts modify Azure role assignments. Always test in a non-production environment first. The authors are not responsible for any unintended access grants, data exposure, or service disruptions resulting from the use of these scripts. Use at your own risk.
