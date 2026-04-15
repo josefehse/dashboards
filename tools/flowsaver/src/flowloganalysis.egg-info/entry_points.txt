@@ -1,0 +1,2 @@
+[console_scripts]
+flowlog = flowloganalysis.cli:main

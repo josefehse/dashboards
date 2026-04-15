@@ -1,0 +1,13 @@
+pyproject.toml
+src/flowloganalysis/__init__.py
+src/flowloganalysis/cli.py
+src/flowloganalysis/loader.py
+src/flowloganalysis/parser.py
+src/flowloganalysis/storage.py
+src/flowloganalysis.egg-info/PKG-INFO
+src/flowloganalysis.egg-info/SOURCES.txt
+src/flowloganalysis.egg-info/dependency_links.txt
+src/flowloganalysis.egg-info/entry_points.txt
+src/flowloganalysis.egg-info/requires.txt
+src/flowloganalysis.egg-info/top_level.txt
+tests/test_parser.py

@@ -1,0 +1,11 @@
+// ==========================================================================
+// ADX Flow Log Cleanup — Clear all ingested data
+// ==========================================================================
+// Run this in the ADX Web UI query editor to immediately free storage.
+// Table schemas and the update policy are preserved — you can re-ingest
+// without running adx-setup.kql again.
+// ==========================================================================
+
+.clear table flowlogs data
+
+.clear table flowlogsraw data

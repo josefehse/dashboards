@@ -1,0 +1,322 @@
+{
+  "$schema": "https://github.com/microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json",
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a0b1c2d3-cluster-name",
+            "version": "KqlParameterItem/1.0",
+            "name": "ClusterName",
+            "label": "Cluster Name",
+            "type": 1,
+            "isRequired": true,
+            "value": "",
+            "description": "Name of your ADX cluster"
+          },
+          {
+            "id": "a0b1c2d3-database",
+            "version": "KqlParameterItem/1.0",
+            "name": "DatabaseName",
+            "label": "Database",
+            "type": 1,
+            "isRequired": true,
+            "value": "flowlogs",
+            "description": "Name of the ADX database containing the flowlogs table"
+          },
+          {
+            "id": "a0b1c2d3-time-range",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 3600000,
+                  "displayText": "Last 1 hour"
+                },
+                {
+                  "durationMs": 14400000,
+                  "displayText": "Last 4 hours"
+                },
+                {
+                  "durationMs": 43200000,
+                  "displayText": "Last 12 hours"
+                },
+                {
+                  "durationMs": 86400000,
+                  "displayText": "Last 24 hours"
+                },
+                {
+                  "durationMs": 259200000,
+                  "displayText": "Last 3 days"
+                },
+                {
+                  "durationMs": 604800000,
+                  "displayText": "Last 7 days"
+                }
+              ]
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "a0b1c2d3-src-ip",
+            "version": "KqlParameterItem/1.0",
+            "name": "SrcIP",
+            "label": "Source IP",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct SrcIP\\n| order by SrcIP asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "defaultValue": "value::all",
+            "queryType": 9,
+            "resourceType": "microsoft.kusto/clusters"
+          },
+          {
+            "id": "a0b1c2d3-dst-ip",
+            "version": "KqlParameterItem/1.0",
+            "name": "DstIP",
+            "label": "Destination IP",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct DstIP\\n| order by DstIP asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "defaultValue": "value::all",
+            "queryType": 9,
+            "resourceType": "microsoft.kusto/clusters"
+          },
+          {
+            "id": "a0b1c2d3-dst-port",
+            "version": "KqlParameterItem/1.0",
+            "name": "DstPort",
+            "label": "Destination Port",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct tostring(DstPort)\\n| order by Column1 asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "defaultValue": "value::all",
+            "queryType": 9,
+            "resourceType": "microsoft.kusto/clusters"
+          }
+        ],
+        "style": "pills",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize FlowCount=count()\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 4,
+        "title": "Total Flows",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "FlowCount",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          },
+          "showBorder": false
+        }
+      },
+      "customWidth": "33",
+      "name": "total-flows"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 4,
+        "title": "Total Bytes",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "TotalBytes",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          },
+          "showBorder": false
+        }
+      },
+      "customWidth": "33",
+      "name": "total-bytes"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize UniqueIPs=dcount(SrcIP) + dcount(DstIP)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 4,
+        "title": "Unique IPs",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {
+            "columnMatch": "UniqueIPs",
+            "formatter": 12,
+            "formatOptions": {
+              "palette": "auto"
+            }
+          },
+          "showBorder": false
+        }
+      },
+      "customWidth": "33",
+      "name": "unique-ips"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc), Flows=count() by bin(FlowTime, 5m)\\n| order by FlowTime asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Traffic Over Time",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "areachart",
+        "chartSettings": {
+          "xAxis": "FlowTime",
+          "yAxis": [
+            "TotalBytes"
+          ],
+          "seriesLabelSettings": [
+            {
+              "seriesName": "TotalBytes",
+              "label": "Bytes"
+            }
+          ]
+        }
+      },
+      "name": "traffic-over-time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by SrcIP\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Top 10 Sources by Traffic",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "barchart",
+        "chartSettings": {
+          "xAxis": "SrcIP",
+          "yAxis": [
+            "BytesSent",
+            "BytesRecv"
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "top-sources"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by DstIP, DstPort\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Top 10 Destinations by Traffic",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "barchart",
+        "chartSettings": {
+          "xAxis": "DstIP",
+          "yAxis": [
+            "BytesSent",
+            "BytesRecv"
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "top-destinations"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize Flows=count() by Protocol, Direction, State\\n| order by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Flow Breakdown",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "table"
+      },
+      "customWidth": "50",
+      "name": "flow-breakdown"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where State == 'Begin' and BytesSrcToDst == 0 and BytesDstToSrc == 0\\n| summarize Flows=count() by SrcIP, DstIP, DstPort, Protocol, RuleName\\n| top 20 by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Top Blocked Flows (Begin with 0 bytes)",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "table"
+      },
+      "customWidth": "50",
+      "name": "blocked-flows"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| project FlowTime, SrcIP, DstIP, SrcPort, DstPort, Protocol, Direction, State, BytesSrcToDst, BytesDstToSrc, RuleName\\n| order by FlowTime desc\\n| take 200\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "size": 0,
+        "title": "Recent Flows",
+        "queryType": 9,
+        "resourceType": "microsoft.kusto/clusters",
+        "visualization": "table"
+      },
+      "name": "recent-flows"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "styleSettings": {}
+}

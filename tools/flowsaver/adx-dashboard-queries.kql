@@ -1,0 +1,109 @@
+// ============================================================
+// ADX Dashboard Queries — jfehsemcaps / flowlogs
+// Create a new dashboard in https://dataexplorer.azure.com
+// Add parameters first, then add tiles using these queries.
+// ============================================================
+
+// PARAMETERS TO CREATE:
+// 1. Name: _startTime  | Type: DateTime  | Default: ago(24h)
+// 2. Name: _endTime    | Type: DateTime  | Default: now()
+// 3. Name: SrcIP       | Type: Multi-select, source query below
+// 4. Name: DstIP       | Type: Multi-select, source query below
+// 5. Name: DstPort     | Type: Multi-select, source query below
+
+// --- Parameter source: SrcIP dropdown ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| distinct SrcIP
+| order by SrcIP asc
+
+// --- Parameter source: DstIP dropdown ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| distinct DstIP
+| order by DstIP asc
+
+// --- Parameter source: DstPort dropdown ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| distinct DstPort
+| order by DstPort asc
+
+
+// ============================================================
+// TILE QUERIES (each one becomes a tile in the dashboard)
+// ============================================================
+
+// --- Tile 1: Total Flows (stat/counter) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize FlowCount=count()
+
+// --- Tile 2: Total Bytes (stat/counter) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc)
+
+// --- Tile 3: Traffic Over Time (area chart) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc), Flows=count() by bin(FlowTime, 5m)
+| order by FlowTime asc
+
+// --- Tile 4: Top 10 Sources (bar chart) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by SrcIP
+| extend TotalBytes=BytesSent + BytesRecv
+| top 10 by TotalBytes desc
+
+// --- Tile 5: Top 10 Destinations (bar chart) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by DstIP, DstPort
+| extend TotalBytes=BytesSent + BytesRecv
+| top 10 by TotalBytes desc
+
+// --- Tile 6: Flow Breakdown (table) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| summarize Flows=count() by Protocol, Direction, State
+| order by Flows desc
+
+// --- Tile 7: Blocked Flows (table) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| where State == "Begin" and BytesSrcToDst == 0 and BytesDstToSrc == 0
+| summarize Flows=count() by SrcIP, DstIP, DstPort, Protocol, RuleName
+| top 20 by Flows desc
+
+// --- Tile 8: Recent Flows (table) ---
+flowlogs
+| where FlowTime between (todatetime(_startTime) .. todatetime(_endTime))
+| where (array_length(dynamic([{SrcIP}])) == 0 or SrcIP in (dynamic([{SrcIP}])))
+| where (array_length(dynamic([{DstIP}])) == 0 or DstIP in (dynamic([{DstIP}])))
+| where (array_length(dynamic([{DstPort}])) == 0 or DstPort in (dynamic([{DstPort}])))
+| project FlowTime, SrcIP, DstIP, SrcPort, DstPort, Protocol, Direction, State, BytesSrcToDst, BytesDstToSrc, RuleName
+| order by FlowTime desc
+| take 200

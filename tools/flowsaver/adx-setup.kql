@@ -1,0 +1,78 @@
+// ==========================================================================
+// ADX Flow Log Setup
+// ==========================================================================
+// Copy-paste this entire block into the ADX Web UI query editor and run it.
+// It creates all tables, the parsing function, and the update policy.
+// ==========================================================================
+
+.execute database script <|
+//
+// 1. Raw landing table (JSON as-is from blob storage)
+.create-or-alter table flowlogsraw (Records: dynamic)
+//
+// 2. Short retention on raw table (auto-cleanup after transform)
+.alter-merge table flowlogsraw policy retention softdelete = 1d
+//
+// 3. Ingestion mapping (maps $.records from the JSON into the Records column)
+.create-or-alter table flowlogsraw ingestion json mapping 'FlowLogMapping' '[{"column":"Records","path":"$.records","datatype":"dynamic"}]'
+//
+// 4. Parsed/searchable table
+.create-or-alter table flowlogs (RecordTime: datetime, FlowTime: datetime, SrcIP: string, DstIP: string, SrcPort: int, DstPort: int, Protocol: string, Direction: string, State: string, Encryption: string, PacketsSrcToDst: long, BytesSrcToDst: long, PacketsDstToSrc: long, BytesDstToSrc: long, RuleName: string, AclID: string, MacAddress: string, FlowLogResource: string, TargetResource: string)
+//
+// 4b. 2-day retention on parsed table (keeps storage low on free tier)
+.alter-merge table flowlogs policy retention softdelete = 2d
+//
+// 5. Parsing function (expands nested JSON + CSV tuples into flat rows)
+.create-or-alter function FlowLogExpand() {
+    flowlogsraw
+    | mv-expand record = Records
+    | mv-expand flow = record.flowRecords.flows
+    | mv-expand flowGroup = flow.flowGroups
+    | mv-expand tuple = flowGroup.flowTuples
+    | parse tostring(tuple) with
+        EpochMs:long "," SrcIP:string "," DstIP:string ","
+        SrcPort:int "," DstPort:int "," Proto:string ","
+        Dir:string "," FlowState:string "," Enc:string ","
+        PktsSrc:long "," BytesSrc:long ","
+        PktsDst:long "," BytesDst:long
+    | extend FlowTime = unixtime_milliseconds_todatetime(EpochMs)
+    | extend Protocol = case(Proto == "6", "TCP", Proto == "17", "UDP", Proto)
+    | extend Direction = iff(Dir == "I", "Inbound", "Outbound")
+    | extend State = case(FlowState == "B", "Begin", FlowState == "C", "Continuing", "End")
+    | project
+        RecordTime      = todatetime(record.["time"]),
+        FlowTime,
+        SrcIP,
+        DstIP,
+        SrcPort,
+        DstPort,
+        Protocol,
+        Direction,
+        State,
+        Encryption      = Enc,
+        PacketsSrcToDst = PktsSrc,
+        BytesSrcToDst   = BytesSrc,
+        PacketsDstToSrc = PktsDst,
+        BytesDstToSrc   = BytesDst,
+        RuleName        = tostring(flowGroup.rule),
+        AclID           = tostring(flow.aclID),
+        MacAddress      = tostring(record.macAddress),
+        FlowLogResource = tostring(record.flowLogResourceID),
+        TargetResource  = tostring(record.targetResourceID)
+}
+//
+// 6. Update policy (auto-transforms raw → parsed when data lands)
+.alter table flowlogs policy update '[{"IsEnabled": true, "Source": "flowlogsraw", "Query": "FlowLogExpand()", "IsTransactional": true, "PropagateIngestionProperties": true}]'
+
+
+// ==========================================================================
+// VERIFICATION (run after the script above completes)
+// ==========================================================================
+
+// Check that the mapping was created
+.show table flowlogsraw ingestion json mappings
+
+// After ingesting data, verify row counts
+// flowlogsraw | count
+// flowlogs | count
+// flowlogs | take 10

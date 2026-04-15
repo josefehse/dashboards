@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: flowloganalysis
+Version: 0.1.0
+Summary: Parse and analyze Azure VNet flow logs with DuckDB
+Requires-Python: >=3.10
+Requires-Dist: duckdb>=1.0
+Requires-Dist: pytz
+Provides-Extra: azure
+Requires-Dist: azure-storage-blob>=12.0; extra == "azure"
+Requires-Dist: azure-identity>=1.0; extra == "azure"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"

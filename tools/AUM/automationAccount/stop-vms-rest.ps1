@@ -1,7 +1,15 @@
 param(
     [Parameter(Mandatory = $false)]
-    [object] $WebhookData
+    [object] $WebhookData,
+
+    [Parameter(Mandatory = $false)]
+    [bool] $Test = $false
 )
+
+# --- Test mode: parse JSON input when testing manually ---
+if ($Test) {
+    $WebhookData = $WebhookData | ConvertFrom-Json
+}
 
 # --- Helper function to get Managed Identity token ---
 function Get-ManagedIdentityToken {
@@ -92,8 +100,9 @@ foreach ($evt in $events) {
         continue
     }
 
-    if ($eventType -ne "Microsoft.Maintenance.PreMaintenanceEvent") {
-        Write-Output "Skipping eventType '$eventType' because this runbook handles PreMaintenance only."
+    # This runbook handles PostMaintenance only (stop after patching completes)
+    if ($eventType -ne "Microsoft.Maintenance.PostMaintenanceEvent") {
+        Write-Output "Skipping eventType '$eventType' because this runbook handles PostMaintenance only."
         continue
     }
 
@@ -223,7 +232,7 @@ resources
             if ($vmResourceIds.Count -gt 0) {
                 Write-Output "Found $($vmResourceIds.Count) VMs from dynamic scopes."
             } else {
-                Write-Output "No VMs found in maintenance configuration. Nothing to start."
+                Write-Output "No VMs found in maintenance configuration. Nothing to stop."
                 return
             }
         }
@@ -233,7 +242,7 @@ resources
     }
 }
 
-Write-Output "VMs to start (count=$($vmResourceIds.Count)):"
+Write-Output "VMs to stop (count=$($vmResourceIds.Count)):"
 $vmResourceIds | ForEach-Object { Write-Output $_ }
 
 # Get token if not already obtained
@@ -241,7 +250,7 @@ if (-not $token) {
     $token = Get-ManagedIdentityToken -Resource "https://management.azure.com/"
 }
 
-# Start each VM using REST API
+# Stop each VM using REST API (deallocate to stop billing)
 foreach ($rid in $vmResourceIds) {
     try {
         # Get current power state
@@ -250,21 +259,21 @@ foreach ($rid in $vmResourceIds) {
         
         $powerState = ($vmStatus.statuses | Where-Object { $_.code -like "PowerState/*" } | Select-Object -First 1).displayStatus
 
-        if ($powerState -and $powerState -match "running") {
-            Write-Output "VM '$rid' is already running. Skipping start."
+        if ($powerState -and $powerState -match "deallocated|stopped") {
+            Write-Output "VM '$rid' is already stopped/deallocated. Skipping."
             continue
         }
 
-        # Start the VM (async)
-        $startUri = "https://management.azure.com$rid/start?api-version=2024-03-01"
-        Write-Output "Starting VM: $rid"
-        Invoke-AzureRestApi -Method POST -Uri $startUri -Token $token | Out-Null
-        Write-Output "Start initiated for: $rid"
+        # Deallocate the VM (async) - this stops the VM and releases compute resources
+        $deallocateUri = "https://management.azure.com$rid/deallocate?api-version=2024-03-01"
+        Write-Output "Stopping (deallocating) VM: $rid"
+        Invoke-AzureRestApi -Method POST -Uri $deallocateUri -Token $token | Out-Null
+        Write-Output "Stop initiated for: $rid"
 
     } catch {
-        Write-Output "Failed to start VM '$rid'. Error: $($_.Exception.Message)"
+        Write-Output "Failed to stop VM '$rid'. Error: $($_.Exception.Message)"
         throw
     }
 }
 
-Write-Output "Pre-maintenance VM start script completed."
+Write-Output "Post-maintenance VM stop script completed."
