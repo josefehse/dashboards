@@ -1,4 +1,4 @@
-# Azure Monitoring Dashboards & Tools
+# Azure Dashboards & Tools
 
 A collection of Azure Workbooks, Grafana dashboards, and operational tools for monitoring, auditing, and managing Azure infrastructure.
 
