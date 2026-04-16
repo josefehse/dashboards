@@ -33,6 +33,11 @@ def discover(
         True, "--follow-peerings/--no-follow-peerings",
         help="Auto-discover cross-subscription peered VNets",
     ),
+    seed: Optional[str] = typer.Option(
+        None, "--seed",
+        help="Seed VNet name (e.g. hub VNet). Only this VNet and its "
+             "connected VNets (peerings, vWAN) will be included in the report.",
+    ),
     output: Path = typer.Option(
         "topology.json", "--output", "-o", help="Output JSON file path",
     ),
@@ -199,6 +204,10 @@ def discover(
         application_gateways=all_app_gateways,
     )
 
+    # Seed-filter: keep only the seed VNet and its connected neighbours
+    if seed:
+        topology = _filter_topology_by_seed(topology, seed, console)
+
     # Build graph and show summary
     topo_graph = build_topology_graph(topology)
     summary = topo_graph.summary()
@@ -218,6 +227,120 @@ def discover(
     if report:
         export_report(topology, report, include_analysis=analyse)
         console.print(f"[green]✅ Markdown report saved to:[/green] {report}")
+
+
+def _filter_topology_by_seed(
+    topology: "Topology", seed_name: str, console: Console,
+) -> "Topology":
+    """Return a new Topology containing only VNets reachable from *seed_name*.
+
+    Reachability is determined by VNet peerings and vWAN hub connections.
+    All non-VNet resources (route tables, NSGs, gateways, …) are filtered to
+    only those referenced by the remaining VNets.
+    """
+    from netinspect.models.types import Topology
+
+    vnet_map = {v.name.lower(): v for v in topology.vnets}
+    if seed_name.lower() not in vnet_map:
+        console.print(
+            f"[red]Seed VNet '{seed_name}' not found in discovered VNets.[/red]"
+        )
+        raise SystemExit(1)
+
+    # BFS / flood-fill from the seed
+    reachable: set[str] = set()
+    queue: list[str] = [seed_name.lower()]
+
+    # Pre-build vWAN adjacency: vnet -> set of peer vnet names via hubs
+    hub_adj: dict[str, set[str]] = {}
+    for hub in topology.virtual_hubs:
+        hub_vnets = [
+            c.remote_vnet_name.lower() for c in hub.vnet_connections
+            if c.remote_vnet_name.lower() in vnet_map
+        ]
+        for vn in hub_vnets:
+            hub_adj.setdefault(vn, set()).update(hub_vnets)
+
+    while queue:
+        current = queue.pop()
+        if current in reachable:
+            continue
+        reachable.add(current)
+        vnet = vnet_map.get(current)
+        if not vnet:
+            continue
+        # Follow peerings
+        for p in vnet.peerings:
+            peer = p.remote_vnet_name.lower()
+            if peer in vnet_map and peer not in reachable:
+                queue.append(peer)
+        # Follow vWAN hub connections
+        for peer in hub_adj.get(current, set()):
+            if peer not in reachable:
+                queue.append(peer)
+
+    filtered_vnets = [v for v in topology.vnets if v.name.lower() in reachable]
+    vnet_ids_lower = {v.id.lower() for v in filtered_vnets}
+
+    console.print(
+        f"\n[bold]🌱 Seed filter:[/bold] keeping "
+        f"[cyan]{len(filtered_vnets)}[/cyan] VNet(s) reachable from "
+        f"[bold]{seed_name}[/bold]"
+    )
+
+    # Helper to check if a resource ID references one of the kept VNets
+    def _vnet_id_match(rid: str | None) -> bool:
+        if not rid:
+            return False
+        return rid.lower() in vnet_ids_lower
+
+    # Collect all resource IDs referenced by kept VNets' subnets
+    kept_nsg_ids = set()
+    kept_rt_ids = set()
+    kept_nat_ids = set()
+    for v in filtered_vnets:
+        for s in v.subnets:
+            if s.nsg_id:
+                kept_nsg_ids.add(s.nsg_id.lower())
+            if s.route_table_id:
+                kept_rt_ids.add(s.route_table_id.lower())
+            if s.nat_gateway_id:
+                kept_nat_ids.add(s.nat_gateway_id.lower())
+
+    # Filter VPN gateways to those attached to kept VNets
+    filtered_gws = [
+        gw for gw in topology.vpn_gateways if _vnet_id_match(gw.vnet_id)
+    ]
+    gw_names = {gw.name for gw in filtered_gws}
+
+    # Filter vWAN hubs that connect to any kept VNet
+    filtered_hubs = [
+        h for h in topology.virtual_hubs
+        if any(c.remote_vnet_name.lower() in reachable for c in h.vnet_connections)
+    ]
+    hub_wan_ids = {h.virtual_wan_id for h in filtered_hubs if h.virtual_wan_id}
+    filtered_wans = [
+        w for w in topology.virtual_wans if w.id in hub_wan_ids
+    ]
+
+    return Topology(
+        subscription_ids=topology.subscription_ids,
+        subscription_id=topology.subscription_id,
+        vnets=filtered_vnets,
+        route_tables=[rt for rt in topology.route_tables if rt.id and rt.id.lower() in kept_rt_ids],
+        nsgs=[n for n in topology.nsgs if n.id and n.id.lower() in kept_nsg_ids],
+        nat_gateways=[ng for ng in topology.nat_gateways if ng.id and ng.id.lower() in kept_nat_ids],
+        vpn_gateways=filtered_gws,
+        public_ips=topology.public_ips,  # keep all; lightweight
+        private_dns_zones=topology.private_dns_zones,
+        local_network_gateways=topology.local_network_gateways,
+        expressroute_circuits=topology.expressroute_circuits,
+        bgp_peers=[bp for bp in topology.bgp_peers if bp.gateway_name in gw_names],
+        virtual_wans=filtered_wans,
+        virtual_hubs=filtered_hubs,
+        load_balancers=topology.load_balancers,
+        application_gateways=topology.application_gateways,
+    )
 
 
 @app.command()

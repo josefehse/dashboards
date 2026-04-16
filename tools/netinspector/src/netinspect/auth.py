@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
+
 from azure.identity import AzureCliCredential
 from azure.mgmt.subscription import SubscriptionClient
 from rich.console import Console
@@ -13,6 +16,19 @@ console = Console()
 def get_credential() -> AzureCliCredential:
     """Get Azure credential via CLI authentication."""
     return AzureCliCredential()
+
+
+def get_current_subscription_id() -> str | None:
+    """Return the subscription ID currently selected in ``az account show``."""
+    try:
+        result = subprocess.run(
+            ["az", "account", "show", "--query", "id", "-o", "tsv"],
+            capture_output=True, text=True, check=True,
+        )
+        sub_id = result.stdout.strip()
+        return sub_id if sub_id else None
+    except Exception:
+        return None
 
 
 def list_subscriptions(credential: AzureCliCredential) -> list[dict]:
@@ -32,9 +48,10 @@ def resolve_subscriptions(
     credential: AzureCliCredential,
     subscription_csv: str | None = None,
 ) -> list[str]:
-    """Resolve subscription IDs from a comma-separated string, or prompt interactively.
+    """Resolve subscription IDs from a comma-separated string, or use the current CLI default.
 
-    Returns a list of subscription IDs.
+    Falls back to interactive prompt only when the current subscription cannot
+    be determined.  Returns a list of subscription IDs.
     """
     subs = list_subscriptions(credential)
     if not subs:
@@ -58,6 +75,15 @@ def resolve_subscriptions(
         names = ", ".join(sub_map[s]["name"] for s in resolved)
         console.print(f"Using {len(resolved)} subscription(s): [bold]{names}[/bold]")
         return resolved
+
+    # Try the current AZ CLI subscription before falling back to interactive
+    current_sub = get_current_subscription_id()
+    if current_sub and current_sub in sub_map:
+        console.print(
+            f"Using current subscription: "
+            f"[bold]{sub_map[current_sub]['name']}[/bold] ({current_sub})"
+        )
+        return [current_sub]
 
     # Interactive selection (allow multiple)
     console.print("\n[bold]Available subscriptions:[/bold]")
