@@ -1,0 +1,386 @@
+{
+  "mode": "Indexed",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "type",
+          "equals": "microsoft.synapse/workspaces"
+        },
+        {
+          "anyOf": [
+            {
+              "value": "[first(parameters('resourceLocationList'))]",
+              "equals": "*"
+            },
+            {
+              "field": "location",
+              "in": "[parameters('resourceLocationList')]"
+            }
+          ]
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Insights/diagnosticSettings",
+        "evaluationDelay": "AfterProvisioning",
+        "existenceCondition": {
+          "allOf": [
+            {
+              "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+              "equals": "[parameters('logAnalytics')]"
+            },
+            {
+              "count": {
+                "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                "where": {
+                  "anyOf": [
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "SynapseRbacOperations"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('SynapseRbacOperationsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "GatewayApiRequests"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('GatewayApiRequestsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "SQLSecurityAuditEvents"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('SQLSecurityAuditEventsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "BuiltinSqlReqsEnded"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('BuiltinSqlReqsEndedEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "IntegrationPipelineRuns"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('IntegrationPipelineRunsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "IntegrationActivityRuns"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('IntegrationActivityRunsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "IntegrationTriggerRuns"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('IntegrationTriggerRunsEnabled')]"
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                          "equals": "SynapseLinkEvent"
+                        },
+                        {
+                          "field": "Microsoft.Insights/diagnosticSettings/logs[*].enabled",
+                          "equals": "[parameters('SynapseLinkEventEnabled')]"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "greaterOrEquals": 1
+            }
+          ]
+        },
+        "roleDefinitionIds": [
+          "/providers/Microsoft.Authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+        ],
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "http://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "diagnosticSettingName": {
+                  "type": "string"
+                },
+                "logAnalytics": {
+                  "type": "string"
+                },
+                "resourceName": {
+                  "type": "string"
+                },
+                "SynapseRbacOperationsEnabled": {
+                  "type": "bool"
+                },
+                "GatewayApiRequestsEnabled": {
+                  "type": "bool"
+                },
+                "SQLSecurityAuditEventsEnabled": {
+                  "type": "bool"
+                },
+                "BuiltinSqlReqsEndedEnabled": {
+                  "type": "bool"
+                },
+                "IntegrationPipelineRunsEnabled": {
+                  "type": "bool"
+                },
+                "IntegrationActivityRunsEnabled": {
+                  "type": "bool"
+                },
+                "IntegrationTriggerRunsEnabled": {
+                  "type": "bool"
+                },
+                "SynapseLinkEventEnabled": {
+                  "type": "bool"
+                }
+              },
+              "variables": {},
+              "resources": [
+                {
+                  "type": "microsoft.synapse/workspaces/providers/diagnosticSettings",
+                  "apiVersion": "2021-05-01-preview",
+                  "name": "[concat(parameters('resourceName'), '/', 'Microsoft.Insights/', parameters('diagnosticSettingName'))]",
+                  "properties": {
+                    "workspaceId": "[parameters('logAnalytics')]",
+                    "logs": [
+                      {
+                        "category": "SynapseRbacOperations",
+                        "enabled": "[parameters('SynapseRbacOperationsEnabled')]"
+                      },
+                      {
+                        "category": "GatewayApiRequests",
+                        "enabled": "[parameters('GatewayApiRequestsEnabled')]"
+                      },
+                      {
+                        "category": "SQLSecurityAuditEvents",
+                        "enabled": "[parameters('SQLSecurityAuditEventsEnabled')]"
+                      },
+                      {
+                        "category": "BuiltinSqlReqsEnded",
+                        "enabled": "[parameters('BuiltinSqlReqsEndedEnabled')]"
+                      },
+                      {
+                        "category": "IntegrationPipelineRuns",
+                        "enabled": "[parameters('IntegrationPipelineRunsEnabled')]"
+                      },
+                      {
+                        "category": "IntegrationActivityRuns",
+                        "enabled": "[parameters('IntegrationActivityRunsEnabled')]"
+                      },
+                      {
+                        "category": "IntegrationTriggerRuns",
+                        "enabled": "[parameters('IntegrationTriggerRunsEnabled')]"
+                      },
+                      {
+                        "category": "SynapseLinkEvent",
+                        "enabled": "[parameters('SynapseLinkEventEnabled')]"
+                      }
+                    ],
+                    "metrics": []
+                  }
+                }
+              ],
+              "outputs": {
+                "policy": {
+                  "type": "string",
+                  "value": "[concat('Diagnostic setting ', parameters('diagnosticSettingName'), ' for Azure Synapse Analytics (microsoft.synapse/workspaces), resourceName ', parameters('resourceName'), ' to Log Analytics ', parameters('logAnalytics'), ' configured')]"
+                }
+              }
+            },
+            "parameters": {
+              "diagnosticSettingName": {
+                "value": "[parameters('diagnosticSettingName')]"
+              },
+              "logAnalytics": {
+                "value": "[parameters('logAnalytics')]"
+              },
+              "resourceName": {
+                "value": "[field('name')]"
+              },
+              "SynapseRbacOperationsEnabled": {
+                "value": "[parameters('SynapseRbacOperationsEnabled')]"
+              },
+              "GatewayApiRequestsEnabled": {
+                "value": "[parameters('GatewayApiRequestsEnabled')]"
+              },
+              "SQLSecurityAuditEventsEnabled": {
+                "value": "[parameters('SQLSecurityAuditEventsEnabled')]"
+              },
+              "BuiltinSqlReqsEndedEnabled": {
+                "value": "[parameters('BuiltinSqlReqsEndedEnabled')]"
+              },
+              "IntegrationPipelineRunsEnabled": {
+                "value": "[parameters('IntegrationPipelineRunsEnabled')]"
+              },
+              "IntegrationActivityRunsEnabled": {
+                "value": "[parameters('IntegrationActivityRunsEnabled')]"
+              },
+              "IntegrationTriggerRunsEnabled": {
+                "value": "[parameters('IntegrationTriggerRunsEnabled')]"
+              },
+              "SynapseLinkEventEnabled": {
+                "value": "[parameters('SynapseLinkEventEnabled')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Enable or disable the execution of the policy"
+      },
+      "allowedValues": [
+        "DeployIfNotExists",
+        "AuditIfNotExists",
+        "Disabled"
+      ],
+      "defaultValue": "DeployIfNotExists"
+    },
+    "diagnosticSettingName": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Diagnostic Setting Name",
+        "description": "Diagnostic Setting Name"
+      },
+      "defaultValue": "setByPolicy-LogAnalytics"
+    },
+    "resourceLocationList": {
+      "type": "Array",
+      "metadata": {
+        "displayName": "Resource Location List",
+        "description": "Resource Location List to send logs to nearby Log Analytics. A single entry \"*\" selects all locations (default)."
+      },
+      "defaultValue": [
+        "*"
+      ]
+    },
+    "logAnalytics": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Log Analytics Workspace",
+        "description": "Log Analytics Workspace",
+        "strongType": "omsWorkspace",
+        "assignPermissions": true
+      }
+    },
+    "SynapseRbacOperationsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Synapse RBAC Operations",
+        "description": "Enable logging for Synapse RBAC Operations"
+      },
+      "defaultValue": true
+    },
+    "GatewayApiRequestsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Gateway API Requests",
+        "description": "Enable logging for Gateway API Requests"
+      },
+      "defaultValue": true
+    },
+    "SQLSecurityAuditEventsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "SQL Security Audit Events",
+        "description": "Enable logging for SQL Security Audit Events"
+      },
+      "defaultValue": true
+    },
+    "BuiltinSqlReqsEndedEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Built-in SQL Pool Requests Ended",
+        "description": "Enable logging for Built-in SQL Pool Requests Ended"
+      },
+      "defaultValue": true
+    },
+    "IntegrationPipelineRunsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Integration Pipeline Runs",
+        "description": "Enable logging for Integration Pipeline Runs"
+      },
+      "defaultValue": true
+    },
+    "IntegrationActivityRunsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Integration Activity Runs",
+        "description": "Enable logging for Integration Activity Runs"
+      },
+      "defaultValue": true
+    },
+    "IntegrationTriggerRunsEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Integration Trigger Runs",
+        "description": "Enable logging for Integration Trigger Runs"
+      },
+      "defaultValue": true
+    },
+    "SynapseLinkEventEnabled": {
+      "type": "Boolean",
+      "metadata": {
+        "displayName": "Synapse Link Event",
+        "description": "Enable logging for Synapse Link Event"
+      },
+      "defaultValue": true
+    }
+  }
+}

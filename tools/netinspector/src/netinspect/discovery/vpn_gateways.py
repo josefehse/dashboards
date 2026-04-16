@@ -55,47 +55,84 @@ def _discover_connections(
 ) -> list[VpnGatewayConnection]:
     """Discover connections for a specific gateway."""
     connections = []
+
+    # Step 1: Use list_connections on the gateway itself to reliably get
+    # all connection IDs — this works even when the connection resource
+    # lives in a different resource group.
+    conn_refs: list[tuple[str, str]] = []  # (rg, name) pairs
     try:
-        for raw in network_client.virtual_network_gateway_connections.list(
-            resource_group
+        for entry in network_client.virtual_network_gateways.list_connections(
+            resource_group, gateway_name,
         ):
-            # Filter connections that belong to this gateway
-            gw1_id = (
-                raw.virtual_network_gateway1.id
-                if raw.virtual_network_gateway1 else ""
-            )
-            if gateway_name.lower() not in gw1_id.lower():
-                continue
-
-            # Get the individual connection for full status
-            try:
-                detail = network_client.virtual_network_gateway_connections.get(
-                    resource_group, raw.name,
-                )
-                status = detail.connection_status or "Unknown"
-            except Exception:
-                status = raw.connection_status or "Unknown"
-
-            remote_gw_id = None
-            if raw.virtual_network_gateway2:
-                remote_gw_id = raw.virtual_network_gateway2.id
-            elif raw.local_network_gateway2:
-                remote_gw_id = raw.local_network_gateway2.id
-
-            connections.append(VpnGatewayConnection(
-                id=raw.id,
-                name=raw.name,
-                connection_type=raw.connection_type or "",
-                status=status,
-                remote_gateway_id=remote_gw_id,
-                shared_key_set=bool(raw.shared_key),
-                enable_bgp=raw.enable_bgp or False,
-            ))
+            conn_id = entry.id if hasattr(entry, "id") else ""
+            if conn_id:
+                conn_rg = _extract_resource_group(conn_id)
+                conn_name = conn_id.split("/")[-1]
+                conn_refs.append((conn_rg, conn_name))
     except Exception as e:
         console.print(
-            f"  [yellow]Could not list connections for "
+            f"  [yellow]Could not list_connections for "
             f"{gateway_name}: {e}[/yellow]"
         )
+
+    # Fall back to listing connections in the gateway's RG if
+    # list_connections returned nothing (older SDK versions).
+    if not conn_refs:
+        try:
+            for raw in network_client.virtual_network_gateway_connections.list(
+                resource_group,
+            ):
+                gw1_id = (
+                    raw.virtual_network_gateway1.id
+                    if raw.virtual_network_gateway1 else ""
+                )
+                if gateway_name.lower() in gw1_id.lower():
+                    conn_refs.append((resource_group, raw.name))
+        except Exception:
+            pass
+
+    # Step 2: GET full details for each connection
+    for conn_rg, conn_name in conn_refs:
+        try:
+            detail = network_client.virtual_network_gateway_connections.get(
+                conn_rg, conn_name,
+            )
+        except Exception as e:
+            console.print(
+                f"  [yellow]Could not get connection {conn_name}: {e}[/yellow]"
+            )
+            continue
+
+        # Status: prefer connection_status, fall back to provisioning_state
+        status = (
+            getattr(detail, "connection_status", None)
+            or getattr(detail, "provisioning_state", None)
+            or "Unknown"
+        )
+
+        remote_gw_id = None
+        if detail.virtual_network_gateway2:
+            remote_gw_id = detail.virtual_network_gateway2.id
+        elif detail.local_network_gateway2:
+            remote_gw_id = detail.local_network_gateway2.id
+        # ExpressRoute connections reference the ER circuit via 'peer'
+        peer = getattr(detail, "peer", None)
+        if not remote_gw_id and peer:
+            remote_gw_id = peer.id if hasattr(peer, "id") else str(peer)
+
+        connections.append(VpnGatewayConnection(
+            id=detail.id,
+            name=detail.name,
+            connection_type=detail.connection_type or "",
+            status=status,
+            remote_gateway_id=remote_gw_id,
+            shared_key_set=bool(detail.shared_key) if hasattr(detail, "shared_key") else False,
+            enable_bgp=detail.enable_bgp or False,
+            routing_weight=detail.routing_weight or 0,
+            express_route_gateway_bypass=getattr(
+                detail, "express_route_gateway_bypass", False
+            ) or False,
+        ))
 
     return connections
 
