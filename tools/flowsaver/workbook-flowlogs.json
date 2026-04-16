@@ -36,35 +36,15 @@
             "isRequired": true,
             "typeSettings": {
               "selectableValues": [
-                {
-                  "durationMs": 3600000,
-                  "displayText": "Last 1 hour"
-                },
-                {
-                  "durationMs": 14400000,
-                  "displayText": "Last 4 hours"
-                },
-                {
-                  "durationMs": 43200000,
-                  "displayText": "Last 12 hours"
-                },
-                {
-                  "durationMs": 86400000,
-                  "displayText": "Last 24 hours"
-                },
-                {
-                  "durationMs": 259200000,
-                  "displayText": "Last 3 days"
-                },
-                {
-                  "durationMs": 604800000,
-                  "displayText": "Last 7 days"
-                }
+                { "durationMs": 3600000, "displayText": "Last 1 hour" },
+                { "durationMs": 14400000, "displayText": "Last 4 hours" },
+                { "durationMs": 43200000, "displayText": "Last 12 hours" },
+                { "durationMs": 86400000, "displayText": "Last 24 hours" },
+                { "durationMs": 259200000, "displayText": "Last 3 days" },
+                { "durationMs": 604800000, "displayText": "Last 7 days" }
               ]
             },
-            "value": {
-              "durationMs": 86400000
-            }
+            "value": { "durationMs": 86400000 }
           },
           {
             "id": "a0b1c2d3-src-ip",
@@ -78,9 +58,8 @@
             "delimiter": ",",
             "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct SrcIP\\n| order by SrcIP asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
             "typeSettings": {
-              "additionalResourceOptions": [
-                "value::all"
-              ],
+              "additionalResourceOptions": ["value::all"],
+              "selectAllValue": "*",
               "showDefault": false
             },
             "defaultValue": "value::all",
@@ -99,9 +78,8 @@
             "delimiter": ",",
             "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct DstIP\\n| order by DstIP asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
             "typeSettings": {
-              "additionalResourceOptions": [
-                "value::all"
-              ],
+              "additionalResourceOptions": ["value::all"],
+              "selectAllValue": "*",
               "showDefault": false
             },
             "defaultValue": "value::all",
@@ -118,11 +96,10 @@
             "multiSelect": true,
             "quote": "'",
             "delimiter": ",",
-            "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct tostring(DstPort)\\n| order by Column1 asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+            "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| distinct tostring(DstPort)\\n| order by DstPort asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
             "typeSettings": {
-              "additionalResourceOptions": [
-                "value::all"
-              ],
+              "additionalResourceOptions": ["value::all"],
+              "selectAllValue": "*",
               "showDefault": false
             },
             "defaultValue": "value::all",
@@ -140,7 +117,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize FlowCount=count()\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize FlowCount=count()\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 4,
         "title": "Total Flows",
         "queryType": 9,
@@ -150,9 +127,7 @@
           "titleContent": {
             "columnMatch": "FlowCount",
             "formatter": 12,
-            "formatOptions": {
-              "palette": "auto"
-            }
+            "formatOptions": { "palette": "auto" }
           },
           "showBorder": false
         }
@@ -164,7 +139,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 4,
         "title": "Total Bytes",
         "queryType": 9,
@@ -174,9 +149,7 @@
           "titleContent": {
             "columnMatch": "TotalBytes",
             "formatter": 12,
-            "formatOptions": {
-              "palette": "auto"
-            }
+            "formatOptions": { "palette": "auto" }
           },
           "showBorder": false
         }
@@ -188,7 +161,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize UniqueIPs=dcount(SrcIP) + dcount(DstIP)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize UniqueIPs=dcount(SrcIP) + dcount(DstIP)\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 4,
         "title": "Unique IPs",
         "queryType": 9,
@@ -198,9 +171,7 @@
           "titleContent": {
             "columnMatch": "UniqueIPs",
             "formatter": 12,
-            "formatOptions": {
-              "palette": "auto"
-            }
+            "formatOptions": { "palette": "auto" }
           },
           "showBorder": false
         }
@@ -212,7 +183,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc), Flows=count() by bin(FlowTime, 5m)\\n| order by FlowTime asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize TotalBytes=sum(BytesSrcToDst + BytesDstToSrc), Flows=count() by bin(FlowTime, 5m)\\n| order by FlowTime asc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Traffic Over Time",
         "queryType": 9,
@@ -220,15 +191,8 @@
         "visualization": "areachart",
         "chartSettings": {
           "xAxis": "FlowTime",
-          "yAxis": [
-            "TotalBytes"
-          ],
-          "seriesLabelSettings": [
-            {
-              "seriesName": "TotalBytes",
-              "label": "Bytes"
-            }
-          ]
+          "yAxis": ["TotalBytes"],
+          "seriesLabelSettings": [{ "seriesName": "TotalBytes", "label": "Bytes" }]
         }
       },
       "name": "traffic-over-time"
@@ -237,7 +201,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by SrcIP\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by SrcIP\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Top 10 Sources by Traffic",
         "queryType": 9,
@@ -245,10 +209,7 @@
         "visualization": "barchart",
         "chartSettings": {
           "xAxis": "SrcIP",
-          "yAxis": [
-            "BytesSent",
-            "BytesRecv"
-          ]
+          "yAxis": ["BytesSent", "BytesRecv"]
         }
       },
       "customWidth": "50",
@@ -258,7 +219,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by DstIP, DstPort\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize BytesSent=sum(BytesSrcToDst), BytesRecv=sum(BytesDstToSrc), Flows=count() by DstIP, DstPort\\n| extend TotalBytes=BytesSent + BytesRecv\\n| top 10 by TotalBytes desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Top 10 Destinations by Traffic",
         "queryType": 9,
@@ -266,10 +227,7 @@
         "visualization": "barchart",
         "chartSettings": {
           "xAxis": "DstIP",
-          "yAxis": [
-            "BytesSent",
-            "BytesRecv"
-          ]
+          "yAxis": ["BytesSent", "BytesRecv"]
         }
       },
       "customWidth": "50",
@@ -279,7 +237,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| summarize Flows=count() by Protocol, Direction, State\\n| order by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| summarize Flows=count() by Protocol, Direction, State\\n| order by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Flow Breakdown",
         "queryType": 9,
@@ -293,7 +251,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where State == 'Begin' and BytesSrcToDst == 0 and BytesDstToSrc == 0\\n| summarize Flows=count() by SrcIP, DstIP, DstPort, Protocol, RuleName\\n| top 20 by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| where State == 'Begin' and BytesSrcToDst == 0 and BytesDstToSrc == 0\\n| summarize Flows=count() by SrcIP, DstIP, DstPort, Protocol, RuleName\\n| top 20 by Flows desc\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Top Blocked Flows (Begin with 0 bytes)",
         "queryType": 9,
@@ -307,7 +265,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| project FlowTime, SrcIP, DstIP, SrcPort, DstPort, Protocol, Direction, State, BytesSrcToDst, BytesDstToSrc, RuleName\\n| order by FlowTime desc\\n| take 200\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
+        "query": "{\"version\": \"AzureDataExplorerQuery/1.0\", \"queryText\": \"flowlogs\\n| where FlowTime {TimeRange}\\n| where '*' in ({SrcIP}) or SrcIP in ({SrcIP})\\n| where '*' in ({DstIP}) or DstIP in ({DstIP})\\n| where '*' in ({DstPort}) or tostring(DstPort) in ({DstPort})\\n| project FlowTime, SrcIP, DstIP, SrcPort, DstPort, Protocol, Direction, State, BytesSrcToDst, BytesDstToSrc, RuleName\\n| order by FlowTime desc\\n| take 200\", \"clusterName\": \"{ClusterName}\", \"databaseName\": \"{DatabaseName}\"}",
         "size": 0,
         "title": "Recent Flows",
         "queryType": 9,

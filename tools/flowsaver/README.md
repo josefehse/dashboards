@@ -50,10 +50,8 @@ After running, verify the mapping exists:
 pip install -e ".[azure]"
 ```
 
-> **Azure Cloud Shell note:** If running inside Azure Cloud Shell (or any containerized environment), use `--user` to avoid permission errors:
-> ```bash
-> pip install -e ".[azure]" --user
-> ```
+> [!NOTE]
+> **Azure Cloud Shell:** If running inside Azure Cloud Shell (or any containerized environment), add `--user` to avoid permission errors: `pip install -e ".[azure]" --user`
 
 This installs the `flowlog` CLI with Azure Storage SDK support.
 
@@ -61,28 +59,89 @@ This installs the `flowlog` CLI with Azure Storage SDK support.
 
 The CLI lists blobs in your storage account for a time range and outputs ready-to-paste KQL `.ingest` commands.
 
+#### Ingest last 4 hours
+
+<details open>
+<summary>Bash</summary>
+
 ```bash
-# Ingest last 4 hours
 flowlog generate-kql \
   --storage-account <YOUR_STORAGE_ACCOUNT> \
   --container insights-logs-flowlogflowevent \
   --last-hours 4 \
   --sas-token "<YOUR_SAS_TOKEN>"
+```
 
-# Ingest last 2 days
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+flowlog generate-kql `
+  --storage-account <YOUR_STORAGE_ACCOUNT> `
+  --container insights-logs-flowlogflowevent `
+  --last-hours 4 `
+  --sas-token "<YOUR_SAS_TOKEN>"
+```
+
+</details>
+
+#### Ingest last 2 days
+
+<details open>
+<summary>Bash</summary>
+
+```bash
 flowlog generate-kql \
   --storage-account <YOUR_STORAGE_ACCOUNT> \
   --container insights-logs-flowlogflowevent \
   --last 2 \
   --sas-token "<YOUR_SAS_TOKEN>"
+```
 
-# Ingest a specific time range
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+flowlog generate-kql `
+  --storage-account <YOUR_STORAGE_ACCOUNT> `
+  --container insights-logs-flowlogflowevent `
+  --last 2 `
+  --sas-token "<YOUR_SAS_TOKEN>"
+```
+
+</details>
+
+#### Ingest a specific time range
+
+<details open>
+<summary>Bash</summary>
+
+```bash
 flowlog generate-kql \
   --storage-account <YOUR_STORAGE_ACCOUNT> \
   --container insights-logs-flowlogflowevent \
   --start 2026-04-14T00:00 --end 2026-04-14T12:00 \
   --sas-token "<YOUR_SAS_TOKEN>"
 ```
+
+</details>
+
+<details>
+<summary>PowerShell</summary>
+
+```powershell
+flowlog generate-kql `
+  --storage-account <YOUR_STORAGE_ACCOUNT> `
+  --container insights-logs-flowlogflowevent `
+  --start 2026-04-14T00:00 --end 2026-04-14T12:00 `
+  --sas-token "<YOUR_SAS_TOKEN>"
+```
+
+</details>
 
 Copy the output `.ingest` command from the generated `.kql` file (e.g. `ingest-20260414-160000.kql`), paste it into the ADX Web UI query editor, and run it. The update policy will automatically parse the raw JSON into the `flowlogs` table.
 
@@ -190,13 +249,31 @@ Then re-run `adx-setup.kql` when you need it again.
 | `adx-clear.kql` | Clear all ingested data (keeps schema for re-use) |
 | `adx-dashboard-queries.kql` | KQL queries for building an ADX dashboard |
 | `workbook-flowlogs.json` | Azure Monitor Workbook template (importable) |
+| `New-FlowlogCommand.ps1` | PowerShell helper: browse storage accounts, generate SAS + commands |
 | `src/flowloganalysis/cli.py` | CLI tool (`flowlog` command) |
 | `src/flowloganalysis/parser.py` | VNet flow log JSON parser |
 | `src/flowloganalysis/storage.py` | Azure blob listing with time-range filtering |
 
 ## SAS Token
 
-To generate a SAS token for your storage account:
+The easiest way to generate a SAS token is with the helper script:
+
+```powershell
+# Interactive: browse storage accounts, auto-generate 60-min SAS token
+.\New-FlowlogCommand.ps1
+
+# Search all subscriptions, last 12 hours
+.\New-FlowlogCommand.ps1 -AllSubscriptions -LastHours 12
+
+# Specific subscription, last 2 days
+.\New-FlowlogCommand.ps1 -Subscription "My Subscription" -LastDays 2
+```
+
+The script outputs ready-to-paste commands for both Bash and PowerShell, and copies the PowerShell version to your clipboard.
+
+### Manual SAS Token
+
+To generate a SAS token manually via the Azure Portal:
 
 1. Azure Portal → Storage Account → **Shared access signature**
 2. Permissions: **Read** + **List**

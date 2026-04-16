@@ -105,7 +105,8 @@ def _vnet_summary(topology: Topology) -> str:
     for vnet in topology.vnets:
         addr = ", ".join(vnet.address_spaces) or "N/A"
         dns = ", ".join(vnet.dns_servers) or "Azure Default"
-        lines.append(f"### {vnet.name}")
+        lines.append(f"<details>")
+        lines.append(f"<summary><strong>{vnet.name}</strong> — <code>{addr}</code> ({vnet.location}, {len(vnet.subnets)} subnets, {len(vnet.peerings)} peerings)</summary>")
         lines.append("")
         lines.append("| Property | Value |")
         lines.append("|----------|-------|")
@@ -137,6 +138,9 @@ def _vnet_summary(topology: Topology) -> str:
                 )
             lines.append("")
 
+        lines.append("</details>")
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -147,7 +151,10 @@ def _topology_diagram(topology: Topology) -> str:
 
     lines = ["## Network Topology Diagrams", ""]
 
-    for title, mermaid in diagrams:
+    for i, (title, mermaid) in enumerate(diagrams):
+        if i > 0:
+            lines.append("---")
+            lines.append("")
         lines.append(f"### {title}")
         lines.append("")
         lines.append("```mermaid")

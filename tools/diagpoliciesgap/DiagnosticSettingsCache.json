@@ -1,0 +1,366 @@
+[
+  {
+    "ResourceType": "Microsoft.Insights/dataCollectionRules",
+    "LogCategoryNames": [
+      "LogErrors"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/privateDnsZones",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Dashboard/dashboards",
+    "LogCategoryNames": [
+      "UpdateEvents"
+    ],
+    "MetricCategoryNames": []
+  },
+  {
+    "ResourceType": "Microsoft.Storage/storageAccounts",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "Capacity",
+      "Transaction"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.OperationalInsights/workspaces",
+    "LogCategoryNames": [
+      "Audit",
+      "SummaryLogs",
+      "Jobs"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/networkInterfaces",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/publicIPAddresses",
+    "LogCategoryNames": [
+      "DDoSProtectionNotifications",
+      "DDoSMitigationFlowLogs",
+      "DDoSMitigationReports"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/privateEndpoints",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.CognitiveServices/accounts",
+    "LogCategoryNames": [
+      "Audit",
+      "RequestResponse",
+      "AzureOpenAIRequestUsage",
+      "Trace"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/networkSecurityGroups",
+    "LogCategoryNames": [
+      "NetworkSecurityGroupEvent",
+      "NetworkSecurityGroupRuleCounter"
+    ],
+    "MetricCategoryNames": []
+  },
+  {
+    "ResourceType": "microsoft.insights/components",
+    "LogCategoryNames": [
+      "AppAvailabilityResults",
+      "AppBrowserTimings",
+      "AppEvents",
+      "AppMetrics",
+      "AppDependencies",
+      "AppExceptions",
+      "AppPageViews",
+      "AppPerformanceCounters",
+      "AppRequests",
+      "AppSystemEvents",
+      "AppTraces",
+      "OTelResources"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Compute/disks",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "Disk Performance"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.CognitiveServices/accounts/projects",
+    "LogCategoryNames": [
+      "Audit",
+      "Trace"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Compute/virtualMachines",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.RecoveryServices/vaults",
+    "LogCategoryNames": [
+      "AzureBackupReport",
+      "CoreAzureBackup",
+      "AddonAzureBackupJobs",
+      "AddonAzureBackupAlerts",
+      "AddonAzureBackupPolicy",
+      "AddonAzureBackupStorage",
+      "AddonAzureBackupProtectedInstance",
+      "AzureSiteRecoveryJobs",
+      "AzureSiteRecoveryEvents",
+      "AzureSiteRecoveryReplicatedItems",
+      "AzureSiteRecoveryReplicationStats",
+      "AzureSiteRecoveryRecoveryPoints",
+      "AzureSiteRecoveryReplicationDataUploadRate",
+      "AzureSiteRecoveryProtectedDiskDataChurn",
+      "ASRReplicatedItems",
+      "AzureBackupOperations"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Web/connections",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Sql/servers",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/virtualNetworks",
+    "LogCategoryNames": [
+      "VMProtectionAlerts"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Synapse/workspaces",
+    "LogCategoryNames": [
+      "SynapseRbacOperations",
+      "GatewayApiRequests",
+      "SQLSecurityAuditEvents",
+      "BuiltinSqlReqsEnded",
+      "IntegrationPipelineRuns",
+      "IntegrationActivityRuns",
+      "IntegrationTriggerRuns",
+      "SynapseLinkEvent"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Sql/servers/databases",
+    "LogCategoryNames": [
+      "SQLInsights",
+      "AutomaticTuning",
+      "QueryStoreRuntimeStatistics",
+      "QueryStoreWaitStatistics",
+      "Errors",
+      "DatabaseWaitStatistics",
+      "Timeouts",
+      "Blocks",
+      "Deadlocks",
+      "DevOpsOperationsAudit",
+      "SQLSecurityAuditEvents"
+    ],
+    "MetricCategoryNames": [
+      "Basic",
+      "InstanceAndAppAdvanced",
+      "WorkloadManagement"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/virtualNetworkGateways",
+    "LogCategoryNames": [
+      "GatewayDiagnosticLog",
+      "TunnelDiagnosticLog",
+      "RouteDiagnosticLog",
+      "IKEDiagnosticLog",
+      "P2SDiagnosticLog"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Logic/workflows",
+    "LogCategoryNames": [
+      "WorkflowRuntime"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/networkWatchers/connectionMonitors",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Automation/automationAccounts",
+    "LogCategoryNames": [
+      "JobLogs",
+      "JobStreams",
+      "DscNodeStatus",
+      "AuditEvent"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Compute/virtualMachineScaleSets",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.ContainerRegistry/registries",
+    "LogCategoryNames": [
+      "ContainerRegistryRepositoryEvents",
+      "ContainerRegistryLoginEvents"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.ContainerService/managedClusters",
+    "LogCategoryNames": [
+      "kube-apiserver",
+      "kube-audit",
+      "kube-audit-admin",
+      "kube-controller-manager",
+      "kube-scheduler",
+      "cluster-autoscaler",
+      "cloud-controller-manager",
+      "guard",
+      "csi-azuredisk-controller",
+      "csi-azurefile-controller",
+      "csi-snapshot-controller",
+      "fleet-member-agent",
+      "fleet-member-net-controller-manager",
+      "fleet-mcs-controller-manager",
+      "karpenter-events"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.KeyVault/vaults",
+    "LogCategoryNames": [
+      "AuditEvent",
+      "AzurePolicyEvaluationDetails"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Web/serverFarms",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "microsoft.monitor/accounts",
+    "LogCategoryNames": [
+      "MetricsUsageDetails"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/connections",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/loadBalancers",
+    "LogCategoryNames": [
+      "LoadBalancerHealthEvent"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/natGateways",
+    "LogCategoryNames": [],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  },
+  {
+    "ResourceType": "Microsoft.Network/networkManagers",
+    "LogCategoryNames": [
+      "NetworkGroupMembershipChange",
+      "RuleCollectionChange",
+      "ConnectivityConfigurationChange"
+    ],
+    "MetricCategoryNames": []
+  },
+  {
+    "ResourceType": "Microsoft.Web/sites",
+    "LogCategoryNames": [
+      "FunctionAppLogs",
+      "AppServiceAuthenticationLogs"
+    ],
+    "MetricCategoryNames": [
+      "AllMetrics"
+    ]
+  }
+]
