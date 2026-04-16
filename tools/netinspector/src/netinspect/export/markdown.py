@@ -262,7 +262,7 @@ def _vpn_gateways_section(topology: Topology) -> str:
                         c.remote_gateway_id.split("/")[-1]
                         if c.remote_gateway_id else "—"
                     )
-                    status_icon = "🟢" if c.status == "Connected" else "🔴"
+                    status_icon = "🟢" if c.status in ("Connected", "Succeeded") else "🔴"
                     fastpath = "✅" if c.express_route_gateway_bypass else "❌"
                     lines.append(
                         f"| {c.name} | {c.connection_type} | "

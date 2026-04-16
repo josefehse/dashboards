@@ -67,35 +67,43 @@ def _discover_connections(
             if gateway_name.lower() not in gw1_id.lower():
                 continue
 
-            # Get the individual connection for full status
+            # GET the individual connection for full details (status, peer, etc.)
+            detail = raw
             try:
                 detail = network_client.virtual_network_gateway_connections.get(
                     resource_group, raw.name,
                 )
-                status = detail.connection_status or "Unknown"
             except Exception:
-                status = raw.connection_status or "Unknown"
+                pass
+
+            # Status: prefer connection_status, fall back to provisioning_state
+            status = (
+                getattr(detail, "connection_status", None)
+                or getattr(detail, "provisioning_state", None)
+                or "Unknown"
+            )
 
             remote_gw_id = None
-            if raw.virtual_network_gateway2:
-                remote_gw_id = raw.virtual_network_gateway2.id
-            elif raw.local_network_gateway2:
-                remote_gw_id = raw.local_network_gateway2.id
-            elif raw.peer:
-                # ExpressRoute connections reference the circuit via 'peer'
-                remote_gw_id = raw.peer.id if hasattr(raw.peer, "id") else str(raw.peer)
+            if detail.virtual_network_gateway2:
+                remote_gw_id = detail.virtual_network_gateway2.id
+            elif detail.local_network_gateway2:
+                remote_gw_id = detail.local_network_gateway2.id
+            # ExpressRoute connections reference the ER circuit via 'peer'
+            peer = getattr(detail, "peer", None)
+            if not remote_gw_id and peer:
+                remote_gw_id = peer.id if hasattr(peer, "id") else str(peer)
 
             connections.append(VpnGatewayConnection(
-                id=raw.id,
-                name=raw.name,
-                connection_type=raw.connection_type or "",
+                id=detail.id,
+                name=detail.name,
+                connection_type=detail.connection_type or "",
                 status=status,
                 remote_gateway_id=remote_gw_id,
-                shared_key_set=bool(raw.shared_key),
-                enable_bgp=raw.enable_bgp or False,
-                routing_weight=raw.routing_weight or 0,
+                shared_key_set=bool(detail.shared_key) if hasattr(detail, "shared_key") else False,
+                enable_bgp=detail.enable_bgp or False,
+                routing_weight=detail.routing_weight or 0,
                 express_route_gateway_bypass=getattr(
-                    raw, "express_route_gateway_bypass", False
+                    detail, "express_route_gateway_bypass", False
                 ) or False,
             ))
     except Exception as e:
