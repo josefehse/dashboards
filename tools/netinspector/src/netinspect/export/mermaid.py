@@ -209,10 +209,14 @@ def generate_mermaid_diagrams(topology: Topology) -> list[tuple[str, str]]:
                     status = (
                         "🟢" if conn.status == "Connected" else "🔴"
                     )
-                    bgp = " BGP" if conn.enable_bgp else ""
-                    conn_label = (
-                        f"{status} {conn.connection_type}{bgp}"
-                    )
+                    if conn.connection_type == "ExpressRoute":
+                        fp = " FastPath" if conn.express_route_gateway_bypass else ""
+                        conn_label = f"{status} ER{fp}"
+                    else:
+                        bgp = " BGP" if conn.enable_bgp else ""
+                        conn_label = (
+                            f"{status} {conn.connection_type}{bgp}"
+                        )
                     lines.append(
                         f"    {gid} <-->|{conn_label}| {rid}"
                     )

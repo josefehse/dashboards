@@ -207,7 +207,7 @@ def _vpn_gateways_section(topology: Topology) -> str:
 
     lines = ["## VPN / ExpressRoute Gateways", ""]
     for gw in topology.vpn_gateways:
-        bgp_info = f"ASN {gw.bgp_asn}" if gw.bgp_enabled else "Disabled"
+        is_er = gw.gateway_type == "ExpressRoute"
         vnet_name = gw.vnet_id.split("/")[-1] if gw.vnet_id else "—"
         lines.append(f"### {gw.name}")
         lines.append("")
@@ -216,9 +216,16 @@ def _vpn_gateways_section(topology: Topology) -> str:
         lines.append(f"| Resource Group | `{gw.resource_group}` |")
         lines.append(f"| VNet | **{vnet_name}** |")
         lines.append(f"| Type | {gw.gateway_type} |")
-        lines.append(f"| VPN Type | {gw.vpn_type or '—'} |")
+        if not is_er:
+            lines.append(f"| VPN Type | {gw.vpn_type or '—'} |")
         lines.append(f"| SKU | {gw.sku or '—'} |")
-        lines.append(f"| BGP | {bgp_info} |")
+        if is_er:
+            # ER gateways use BGP inherently via the ER circuit
+            bgp_info = f"ASN {gw.bgp_asn}" if gw.bgp_asn else "Inherited from circuit"
+            lines.append(f"| BGP | {bgp_info} |")
+        else:
+            bgp_info = f"ASN {gw.bgp_asn}" if gw.bgp_enabled else "Disabled"
+            lines.append(f"| BGP | {bgp_info} |")
         if gw.bgp_peering_address:
             lines.append(
                 f"| BGP Peering Address | {gw.bgp_peering_address} |"
@@ -241,23 +248,45 @@ def _vpn_gateways_section(topology: Topology) -> str:
         if gw.connections:
             lines.append("**Connections:**")
             lines.append("")
-            lines.append(
-                "| Name | Type | Status | BGP | Remote Gateway |"
-            )
-            lines.append(
-                "|------|------|--------|-----|----------------|"
-            )
-            for c in gw.connections:
-                bgp = "✅" if c.enable_bgp else "❌"
-                remote = (
-                    c.remote_gateway_id.split("/")[-1]
-                    if c.remote_gateway_id else "—"
-                )
-                status_icon = "🟢" if c.status == "Connected" else "🔴"
+            if is_er:
                 lines.append(
-                    f"| {c.name} | {c.connection_type} | "
-                    f"{status_icon} {c.status} | {bgp} | {remote} |"
+                    "| Name | Type | Status | ER Circuit | "
+                    "FastPath | Routing Weight |"
                 )
+                lines.append(
+                    "|------|------|--------|------------|"
+                    "----------|----------------|"
+                )
+                for c in gw.connections:
+                    remote = (
+                        c.remote_gateway_id.split("/")[-1]
+                        if c.remote_gateway_id else "—"
+                    )
+                    status_icon = "🟢" if c.status == "Connected" else "🔴"
+                    fastpath = "✅" if c.express_route_gateway_bypass else "❌"
+                    lines.append(
+                        f"| {c.name} | {c.connection_type} | "
+                        f"{status_icon} {c.status} | {remote} | "
+                        f"{fastpath} | {c.routing_weight} |"
+                    )
+            else:
+                lines.append(
+                    "| Name | Type | Status | BGP | Remote Gateway |"
+                )
+                lines.append(
+                    "|------|------|--------|-----|----------------|"
+                )
+                for c in gw.connections:
+                    bgp = "✅" if c.enable_bgp else "❌"
+                    remote = (
+                        c.remote_gateway_id.split("/")[-1]
+                        if c.remote_gateway_id else "—"
+                    )
+                    status_icon = "🟢" if c.status == "Connected" else "🔴"
+                    lines.append(
+                        f"| {c.name} | {c.connection_type} | "
+                        f"{status_icon} {c.status} | {bgp} | {remote} |"
+                    )
             lines.append("")
 
     return "\n".join(lines)

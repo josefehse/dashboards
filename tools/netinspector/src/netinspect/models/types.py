@@ -139,6 +139,8 @@ class VpnGatewayConnection:
     remote_gateway_id: str | None = None
     shared_key_set: bool = False
     enable_bgp: bool = False
+    routing_weight: int = 0
+    express_route_gateway_bypass: bool = False  # FastPath
 
 
 @dataclass

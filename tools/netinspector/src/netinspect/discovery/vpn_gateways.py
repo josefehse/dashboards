@@ -81,6 +81,9 @@ def _discover_connections(
                 remote_gw_id = raw.virtual_network_gateway2.id
             elif raw.local_network_gateway2:
                 remote_gw_id = raw.local_network_gateway2.id
+            elif raw.peer:
+                # ExpressRoute connections reference the circuit via 'peer'
+                remote_gw_id = raw.peer.id if hasattr(raw.peer, "id") else str(raw.peer)
 
             connections.append(VpnGatewayConnection(
                 id=raw.id,
@@ -90,6 +93,10 @@ def _discover_connections(
                 remote_gateway_id=remote_gw_id,
                 shared_key_set=bool(raw.shared_key),
                 enable_bgp=raw.enable_bgp or False,
+                routing_weight=raw.routing_weight or 0,
+                express_route_gateway_bypass=getattr(
+                    raw, "express_route_gateway_bypass", False
+                ) or False,
             ))
     except Exception as e:
         console.print(
