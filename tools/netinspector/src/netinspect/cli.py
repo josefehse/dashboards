@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import typer
 from rich.console import Console
+
+if TYPE_CHECKING:
+    from netinspect.models.types import Topology
 
 app = typer.Typer(
     name="netinspect",
@@ -42,7 +45,10 @@ def discover(
         "topology.json", "--output", "-o", help="Output JSON file path",
     ),
     report: Optional[Path] = typer.Option(
-        None, "--report", "-r", help="Also generate a Markdown report",
+        None, "--report", "-r", help="Also generate a topology report (.md or .html)",
+    ),
+    dns_report: Optional[Path] = typer.Option(
+        None, "--dns-report", help="Also generate a DNS report (.md or .html)",
     ),
     analyse: bool = typer.Option(
         False, "--analyse/--no-analyse",
@@ -73,7 +79,7 @@ def discover(
     from netinspect.discovery.vpn_gateways import discover_vpn_gateways
     from netinspect.discovery.vwan import discover_virtual_wans
     from netinspect.export.json_export import export_json
-    from netinspect.export.markdown import export_report
+    from netinspect.export.reporting import export_dns_report, export_topology_report
     from netinspect.models.topology import build_topology_graph
     from netinspect.models.types import Topology
 
@@ -225,8 +231,12 @@ def discover(
 
     # Export report if requested
     if report:
-        export_report(topology, report, include_analysis=analyse)
-        console.print(f"[green]✅ Markdown report saved to:[/green] {report}")
+        export_topology_report(topology, report, include_analysis=analyse)
+        console.print(f"[green]✅ Report saved to:[/green] {report}")
+
+    if dns_report:
+        export_dns_report(topology, dns_report)
+        console.print(f"[green]✅ DNS report saved to:[/green] {dns_report}")
 
 
 def _filter_topology_by_seed(
@@ -329,7 +339,10 @@ def _filter_topology_by_seed(
         vnets=filtered_vnets,
         route_tables=[rt for rt in topology.route_tables if rt.id and rt.id.lower() in kept_rt_ids],
         nsgs=[n for n in topology.nsgs if n.id and n.id.lower() in kept_nsg_ids],
-        nat_gateways=[ng for ng in topology.nat_gateways if ng.id and ng.id.lower() in kept_nat_ids],
+        nat_gateways=[
+            ng for ng in topology.nat_gateways
+            if ng.id and ng.id.lower() in kept_nat_ids
+        ],
         vpn_gateways=filtered_gws,
         public_ips=topology.public_ips,  # keep all; lightweight
         private_dns_zones=topology.private_dns_zones,
@@ -562,16 +575,18 @@ def analyze(
 @app.command()
 def report(
     input: Path = typer.Option("topology.json", "--input", "-i", help="Input JSON topology file"),
-    output: Path = typer.Option("report.md", "--output", "-o", help="Output Markdown report file"),
+    output: Path = typer.Option(
+        "report.md", "--output", "-o", help="Output report file (.md or .html)"
+    ),
     analyse: bool = typer.Option(
         False, "--analyse/--no-analyse",
         help="Include CAF/WAF analysis findings in the report",
     ),
 ) -> None:
-    """Generate a Markdown report from a previously saved topology snapshot."""
+    """Generate a topology report from a previously saved topology snapshot."""
 
     from netinspect.export.json_export import load_json
-    from netinspect.export.markdown import export_report as write_report
+    from netinspect.export.reporting import export_topology_report
 
     if not input.exists():
         console.print(f"[red]Input file not found: {input}[/red]")
@@ -583,8 +598,32 @@ def report(
     # Reconstruct Topology from dict
     topology = _topology_from_dict(data)
 
-    write_report(topology, output, include_analysis=analyse)
-    console.print(f"[green]✅ Markdown report saved to:[/green] {output}")
+    export_topology_report(topology, output, include_analysis=analyse)
+    console.print(f"[green]✅ Report saved to:[/green] {output}")
+
+
+@app.command("dns-report")
+def dns_report(
+    input: Path = typer.Option("topology.json", "--input", "-i", help="Input JSON topology file"),
+    output: Path = typer.Option(
+        "dns-report.md", "--output", "-o", help="Output DNS report file (.md or .html)"
+    ),
+) -> None:
+    """Generate a DNS-focused report from a previously saved topology snapshot."""
+
+    from netinspect.export.json_export import load_json
+    from netinspect.export.reporting import export_dns_report
+
+    if not input.exists():
+        console.print(f"[red]Input file not found: {input}[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[bold]📄 Loading topology from:[/bold] {input}")
+    data = load_json(input)
+    topology = _topology_from_dict(data)
+
+    export_dns_report(topology, output)
+    console.print(f"[green]✅ DNS report saved to:[/green] {output}")
 
 
 @app.command()

@@ -8,7 +8,7 @@ Azure network topology discovery, documentation, and analysis tool.
 - **Multi-subscription** support with auto-follow of cross-subscription peerings
 - **Model** the network as a graph for analysis
 - **Analyze** against CAF/WAF best practices (security, reliability, design, cost)
-- **Export** topology as JSON snapshots, Markdown reports, and Mermaid diagrams
+- **Export** topology as JSON snapshots, Markdown reports, HTML reports, and Mermaid diagrams
 - **Query** connectivity and routing between subnets
 
 ## Installation
@@ -43,14 +43,20 @@ netinspect discover --subscription <sub-id> --no-follow-peerings
 ### Export options
 
 ```bash
-# JSON snapshot + Markdown report in one command
+# JSON snapshot + report in one command
 netinspect discover -s <sub-id> --output topology.json --report report.md
+
+# JSON snapshot + HTML topology report + DNS report
+netinspect discover -s <sub-id> --output topology.json --report report.html --dns-report dns-report.html
 
 # JSON snapshot only (default)
 netinspect discover -s <sub-id> --output topology.json
 
-# Generate report from existing JSON
+# Generate topology report from existing JSON
 netinspect report --input topology.json --output report.md
+
+# Generate DNS report from existing JSON
+netinspect dns-report --input topology.json --output dns-report.html
 ```
 
 ### Analysis
