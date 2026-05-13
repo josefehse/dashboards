@@ -22,6 +22,52 @@ pip install -e .
 - Python 3.10+
 - Azure CLI installed and authenticated (`az login`)
 
+## Running in Azure Cloud Shell
+
+Azure Cloud Shell (Bash) comes with Python 3, Azure CLI, and a pre-authenticated identity, so you can run Network Inspector without any local setup.
+
+1. Open [Azure Cloud Shell](https://shell.azure.com) and select **Bash**.
+
+2. Clone the repository and navigate to the tool:
+
+   ```bash
+   git clone https://github.com/josefehse/dashboards.git
+   cd dashboards/tools/netinspector
+   ```
+
+3. Install the package:
+
+   ```bash
+   pip install --user -e .
+   ```
+
+4. Ensure the `netinspect` CLI is on your PATH (Cloud Shell user-installed scripts path):
+
+   ```bash
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
+5. Verify the installation:
+
+   ```bash
+   netinspect --help
+   ```
+
+6. Run a discovery (Cloud Shell inherits your portal identity—no `az login` needed):
+
+   ```bash
+   netinspect discover --subscription <subscription-id> --output topology.json --report report.html
+   ```
+
+7. Download results. In Cloud Shell click the **Upload/Download** button, choose **Download**, and enter the file path (e.g. `dashboards/tools/netinspector/topology.json`). Alternatively:
+
+   ```bash
+   download topology.json
+   download report.html
+   ```
+
+> **Tip:** Cloud Shell sessions time out after 20 minutes of inactivity. For large environments, consider using `tmux` (pre-installed) to keep long-running discoveries alive.
+
 ## Usage
 
 ### Discover full subscription topology
