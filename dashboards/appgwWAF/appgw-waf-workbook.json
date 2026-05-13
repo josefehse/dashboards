@@ -1,0 +1,456 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Application Gateway WAF Traffic & Blocks Dashboard\r\n\r\nThis workbook analyzes Application Gateway traffic patterns and WAF block events using the AzureDiagnostics table."
+      },
+      "name": "text - header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "p-subscription",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "p-workspace",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "isRequired": true,
+            "query": "Resources\r\n| where type == \"microsoft.operationalinsights/workspaces\"\r\n| project id, name, resourceGroup, location\r\n| order by name asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources"
+          },
+          {
+            "id": "p-timerange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 1800000 },
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 259200000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "p-appgw",
+            "version": "KqlParameterItem/1.0",
+            "name": "AppGateway",
+            "label": "Application Gateway",
+            "type": 2,
+            "isRequired": false,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| distinct Resource\r\n| order by Resource asc",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - filters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### Traffic Overview"
+      },
+      "name": "text - traffic overview"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayAccessLog\"\r\n| summarize TotalRequests = count() by bin(TimeGenerated, {TimeRange:grain})\r\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "Total Requests Over Time",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "query - requests over time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayAccessLog\"\r\n| extend StatusCode = toint(httpStatus_d)\r\n| extend StatusGroup = case(\r\n    StatusCode >= 200 and StatusCode < 300, \"2xx Success\",\r\n    StatusCode >= 300 and StatusCode < 400, \"3xx Redirect\",\r\n    StatusCode >= 400 and StatusCode < 500, \"4xx Client Error\",\r\n    StatusCode >= 500 and StatusCode < 600, \"5xx Server Error\",\r\n    \"Other\")\r\n| summarize Count = count() by StatusGroup\r\n| order by StatusGroup asc",
+        "size": 0,
+        "title": "Response Status Distribution",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - status distribution"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayAccessLog\"\r\n| extend StatusCode = toint(httpStatus_d)\r\n| extend StatusGroup = case(\r\n    StatusCode >= 200 and StatusCode < 300, \"2xx\",\r\n    StatusCode >= 300 and StatusCode < 400, \"3xx\",\r\n    StatusCode >= 400 and StatusCode < 500, \"4xx\",\r\n    StatusCode >= 500 and StatusCode < 600, \"5xx\",\r\n    \"Other\")\r\n| summarize Count = count() by StatusGroup, bin(TimeGenerated, {TimeRange:grain})\r\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "Response Codes Over Time",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "query - response codes over time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayAccessLog\"\r\n| summarize Requests = count() by Resource, bin(TimeGenerated, {TimeRange:grain})\r\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "Requests per Application Gateway",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "query - requests per appgw"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayAccessLog\"\r\n| summarize Requests = count(), AvgTimeTaken = avg(timeTaken_d), P95TimeTaken = percentile(timeTaken_d, 95) by requestUri_s\r\n| top 20 by Requests desc\r\n| project ['Request URI'] = requestUri_s, Requests, ['Avg Response Time (s)'] = round(AvgTimeTaken, 3), ['P95 Response Time (s)'] = round(P95TimeTaken, 3)",
+        "size": 0,
+        "title": "Top 20 Requested URIs",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Requests",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "blue"
+              }
+            },
+            {
+              "columnMatch": "Avg Response Time",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "P95 Response Time",
+              "formatter": 1
+            }
+          ],
+          "rowLimit": 20
+        }
+      },
+      "name": "query - top uris"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### WAF Blocks & Detections"
+      },
+      "name": "text - waf section"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let waf = AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\";\r\nlet blocked = waf | where action_s == \"Blocked\" | summarize Blocked = count();\r\nlet detected = waf | where action_s == \"Detected\" | summarize Detected = count();\r\nlet allowed = waf | where action_s == \"Allowed\" or action_s == \"\" | summarize Allowed = count();\r\nblocked | extend placeholder = 1\r\n| join kind=fullouter (detected | extend placeholder = 1) on placeholder\r\n| join kind=fullouter (allowed | extend placeholder = 1) on placeholder\r\n| project Blocked = coalesce(Blocked, 0), Detected = coalesce(Detected, 0), Allowed = coalesce(Allowed, 0)",
+        "size": 4,
+        "title": "WAF Action Summary",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "tiles",
+        "tileSettings": {
+          "titleContent": {},
+          "showBorder": true
+        }
+      },
+      "name": "query - waf summary tiles"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| summarize Count = count() by action_s, bin(TimeGenerated, {TimeRange:grain})\r\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "WAF Actions Over Time",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "timechart"
+      },
+      "customWidth": "50",
+      "name": "query - waf actions over time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize BlockedCount = count() by bin(TimeGenerated, {TimeRange:grain})\r\n| order by TimeGenerated asc",
+        "size": 0,
+        "title": "WAF Blocks Over Time",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "areachart",
+        "chartSettings": {
+          "seriesLabelSettings": [
+            {
+              "seriesName": "BlockedCount",
+              "color": "redBright",
+              "label": "Blocked Requests"
+            }
+          ]
+        }
+      },
+      "customWidth": "50",
+      "name": "query - waf blocks over time"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize BlockCount = count() by ruleId_s, ruleGroup_s\r\n| top 20 by BlockCount desc\r\n| project ['Rule ID'] = ruleId_s, ['Rule Group'] = ruleGroup_s, ['Block Count'] = BlockCount",
+        "size": 0,
+        "title": "Top Triggered WAF Rules (Blocks)",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Block Count",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "red"
+              }
+            }
+          ],
+          "rowLimit": 20
+        }
+      },
+      "customWidth": "50",
+      "name": "query - top waf rules"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize BlockCount = count() by clientIp_s\r\n| top 20 by BlockCount desc\r\n| project ['Client IP'] = clientIp_s, ['Block Count'] = BlockCount",
+        "size": 0,
+        "title": "Top Blocked Client IPs",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Block Count",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "red"
+              }
+            }
+          ],
+          "rowLimit": 20
+        }
+      },
+      "customWidth": "50",
+      "name": "query - top blocked ips"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize BlockCount = count() by requestUri_s\r\n| top 20 by BlockCount desc\r\n| project ['Request URI'] = requestUri_s, ['Block Count'] = BlockCount",
+        "size": 0,
+        "title": "Top Blocked URIs",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Block Count",
+              "formatter": 4,
+              "formatOptions": {
+                "palette": "orange"
+              }
+            }
+          ],
+          "rowLimit": 20
+        }
+      },
+      "customWidth": "50",
+      "name": "query - top blocked uris"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize BlockCount = count() by ruleGroup_s\r\n| order by BlockCount desc",
+        "size": 0,
+        "title": "Blocks by Rule Group",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "visualization": "piechart"
+      },
+      "customWidth": "50",
+      "name": "query - blocks by rule group"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\r\n### WAF Block Details"
+      },
+      "name": "text - block details"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AzureDiagnostics\r\n| where ResourceType == \"APPLICATIONGATEWAYS\"\r\n| where 'value::all' in ({AppGateway}) or Resource in ({AppGateway})\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| project TimeGenerated, Resource, ['Client IP'] = clientIp_s, ['Request URI'] = requestUri_s, ['Rule ID'] = ruleId_s, ['Rule Group'] = ruleGroup_s, ['Message'] = Message, ['Details'] = details_message_s\r\n| order by TimeGenerated desc",
+        "size": 0,
+        "title": "WAF Block Log Details",
+        "timeContextFromParameter": "TimeRange",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "TimeGenerated",
+              "formatter": 6
+            },
+            {
+              "columnMatch": "Resource",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Client IP",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Rule ID",
+              "formatter": 1
+            },
+            {
+              "columnMatch": "Rule Group",
+              "formatter": 1
+            }
+          ],
+          "rowLimit": 500,
+          "filter": true
+        }
+      },
+      "name": "query - block details"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
