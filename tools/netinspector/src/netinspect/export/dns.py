@@ -77,7 +77,7 @@ def generate_dns_report(topology: Topology) -> str:
 
 
 def export_dns_report(topology: Topology, output_path: Path) -> None:
-    """Generate and write the DNS Markdown report."""
+    """Generate and write the DNS report in Markdown format."""
     output_path.write_text(generate_dns_report(topology), encoding="utf-8")
 
 
