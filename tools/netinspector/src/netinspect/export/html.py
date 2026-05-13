@@ -5,6 +5,7 @@ from __future__ import annotations
 from html import escape
 from ipaddress import ip_address
 
+from netinspect.export.mermaid import generate_mermaid_diagrams
 from netinspect.models.types import Topology
 
 
@@ -59,6 +60,7 @@ def generate_dns_html(topology: Topology) -> str:
                 ("Private DNS zones", str(len(topology.private_dns_zones))),
             ],
         ),
+        _dns_flow_diagram(topology),
         _dns_vnet_table(topology),
         _resolver_table("Private Resolver Inventory", private_resolvers, resolver_usage),
         _resolver_table("Public Resolver Inventory", public_resolvers, resolver_usage),
@@ -95,7 +97,7 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
       }}
 
       .report-shell {{
-        max-width: 1280px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 32px 24px 48px;
       }}
@@ -120,13 +122,14 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
         border-radius: 16px;
         padding: 24px;
         margin-bottom: 20px;
+        overflow: hidden;
       }}
 
       .section-card h2 {{
         margin-top: 0;
       }}
 
-      .summary-grid, .inventory-grid, .diagram-grid {{
+      .summary-grid, .inventory-grid {{
         display: grid;
         gap: 16px;
       }}
@@ -135,15 +138,16 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       }}
 
-      .inventory-grid, .diagram-grid {{
+      .inventory-grid {{
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       }}
 
-      .summary-tile, .inventory-card, .diagram-card, .vnet-card {{
+      .summary-tile, .inventory-card, .vnet-card {{
         background: rgba(30, 41, 59, 0.75);
         border: 1px solid rgba(148, 163, 184, 0.18);
         border-radius: 14px;
         padding: 16px;
+        overflow: hidden;
       }}
 
       .summary-tile strong {{
@@ -155,7 +159,7 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
       .vnet-grid {{
         display: grid;
         gap: 16px;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
       }}
 
       .vnet-meta, .chip-row {{
@@ -181,12 +185,9 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
         color: #cbd5e1;
       }}
 
-      .diagram-node {{
-        background: rgba(14, 116, 144, 0.24);
-        border: 1px solid rgba(103, 232, 249, 0.28);
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
+      .table-scroll {{
+        overflow-x: auto;
+        margin-top: 12px;
       }}
 
       table {{
@@ -199,10 +200,13 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
         padding: 8px 10px;
         text-align: left;
         vertical-align: top;
+        overflow-wrap: break-word;
+        word-break: break-word;
       }}
 
       th {{
         background: rgba(30, 41, 59, 0.9);
+        white-space: nowrap;
       }}
 
       code {{
@@ -219,6 +223,29 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
       .empty-state {{
         color: #94a3b8;
       }}
+
+      .mermaid-diagram {{
+        background: rgba(30, 41, 59, 0.75);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 16px;
+        overflow-x: auto;
+      }}
+
+      .mermaid-diagram h3 {{
+        margin-top: 0;
+        margin-bottom: 16px;
+      }}
+
+      .mermaid {{
+        text-align: center;
+      }}
+
+      .mermaid svg {{
+        max-width: 100%;
+        height: auto;
+      }}
     </style>
   </head>
   <body>
@@ -229,6 +256,15 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
       </header>
       {body_html}
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({{
+        startOnLoad: true,
+        theme: 'dark',
+        securityLevel: 'loose',
+        flowchart: {{ useMaxWidth: true, htmlLabels: true }},
+      }});
+    </script>
   </body>
 </html>
 """
@@ -303,8 +339,9 @@ def _vnet_overview(topology: Topology) -> str:
         )
         subnet_rows = "".join(_subnet_row(subnet) for subnet in vnet.subnets)
         subnet_table = (
+            '<div class="table-scroll">'
             "<table><thead><tr><th>Subnet</th><th>Prefix</th><th>NSG</th><th>Route Table</th>"
-            f"</tr></thead><tbody>{subnet_rows}</tbody></table>"
+            f"</tr></thead><tbody>{subnet_rows}</tbody></table></div>"
             if subnet_rows
             else '<p class="empty-state">No subnets discovered.</p>'
         )
@@ -329,44 +366,21 @@ def _topology_diagrams(topology: Topology) -> str:
     if not topology.vnets:
         return ""
 
-    cards = []
-    zone_links: dict[str, list[str]] = {}
-    for zone in topology.private_dns_zones:
-        for link in zone.vnet_links:
-            zone_links.setdefault(link.vnet_name, []).append(zone.name)
+    diagrams = generate_mermaid_diagrams(topology)
+    if not diagrams:
+        return ""
 
-    for vnet in topology.vnets:
-        peer_nodes = "".join(
-            f'<span class="chip">{escape(p.remote_vnet_name)}</span>'
-            for p in vnet.peerings
-        ) or '<span class="chip muted">No peerings</span>'
-        subnet_nodes = "".join(
-            f'<span class="chip muted">{escape(subnet.name)}</span>' for subnet in vnet.subnets
-        ) or '<span class="chip muted">No subnets</span>'
-        dns_nodes = "".join(
-            f'<span class="chip">{escape(zone)}</span>'
-            for zone in sorted(zone_links.get(vnet.name, []))
-        ) or '<span class="chip muted">No linked private DNS zones</span>'
-        cards.append(
-            '<article class="diagram-card">'
-            f"<h3>{escape(vnet.name)}</h3>"
-            '<div class="diagram-node">'
-            f"<strong>{escape(vnet.name)}</strong><br /><small>"
-            f"{escape(', '.join(vnet.address_spaces) or 'No address space')}</small>"
-            "</div>"
-            "<h4>Connected peerings</h4>"
-            f'<div class="chip-row">{peer_nodes}</div>'
-            "<h4>Contained subnets</h4>"
-            f'<div class="chip-row">{subnet_nodes}</div>'
-            "<h4>Private DNS links</h4>"
-            f'<div class="chip-row">{dns_nodes}</div>'
-            "</article>"
+    blocks = []
+    for title, mermaid_src in diagrams:
+        blocks.append(
+            f'<div class="mermaid-diagram">'
+            f"<h3>{escape(title)}</h3>"
+            f'<pre class="mermaid">{escape(mermaid_src)}</pre>'
+            f"</div>"
         )
     return (
         '<section class="section-card"><h2>Network Topology Diagrams</h2>'
-        '<p>Static HTML diagram cards provide an at-a-glance view of VNet '
-        'relationships without requiring external renderers.</p>'
-        f'<div class="diagram-grid">{"".join(cards)}</div></section>'
+        f'{"" .join(blocks)}</section>'
     )
 
 
@@ -463,6 +477,63 @@ def _subnet_row(subnet) -> str:
 def _zone_link_item(link) -> str:
     registration = "auto-registration enabled" if link.registration_enabled else "link only"
     return f"<li>{escape(link.vnet_name)} ({registration})</li>"
+
+
+def _dns_flow_diagram(topology: Topology) -> str:
+    """Build a Mermaid diagram showing VNet → DNS resolver → Private DNS zone relationships."""
+    if not topology.vnets:
+        return ""
+
+    def _mid(name: str) -> str:
+        return name.replace("-", "_").replace(".", "_").replace(" ", "_")
+
+    lines = ["graph LR"]
+
+    # Collect unique DNS servers and zone links
+    dns_servers: set[str] = set()
+    zone_vnet_links: dict[str, list[str]] = {}  # zone_name -> [vnet_names]
+    for zone in topology.private_dns_zones:
+        for link in zone.vnet_links:
+            zone_vnet_links.setdefault(zone.name, []).append(link.vnet_name)
+
+    for vnet in topology.vnets:
+        vid = _mid(vnet.name)
+        lines.append(f'    {vid}["{vnet.name}"]')
+
+        if vnet.dns_servers:
+            for server in vnet.dns_servers:
+                sid = _mid(f"dns_{server}")
+                dns_servers.add(server)
+                lines.append(f"    {vid} --> {sid}")
+        else:
+            lines.append(f"    {vid} -.->|Azure DNS| azure_dns")
+
+    # DNS server nodes
+    for server in sorted(dns_servers):
+        sid = _mid(f"dns_{server}")
+        scope = _resolver_scope(server)
+        icon = "🔒" if scope == "private" else "🌐"
+        lines.append(f'    {sid}("{icon} {server}")')
+
+    # Azure DNS node (if any VNet uses default)
+    if any(not v.dns_servers for v in topology.vnets):
+        lines.append('    azure_dns(("☁️ Azure DNS"))')
+
+    # Private DNS zone nodes and links
+    for zone_name, vnet_names in zone_vnet_links.items():
+        zid = _mid(f"zone_{zone_name}")
+        lines.append(f'    {zid}[/"📛 {zone_name}"/]')
+        for vnet_name in vnet_names:
+            vid = _mid(vnet_name)
+            lines.append(f"    {vid} -.->|DNS link| {zid}")
+
+    mermaid_src = "\n".join(lines)
+    return (
+        '<section class="section-card"><h2>DNS Resolution Flow</h2>'
+        '<div class="mermaid-diagram">'
+        f'<pre class="mermaid">{escape(mermaid_src)}</pre>'
+        "</div></section>"
+    )
 
 
 def _dns_inventory(
