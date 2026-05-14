@@ -12,6 +12,9 @@
       "type": 9,
       "content": {
         "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
         "parameters": [
           {
             "id": "subscription-param",
@@ -59,31 +62,6 @@
             "value": [
               "value::all"
             ]
-          },
-          {
-            "id": "selected-rule-param",
-            "version": "KqlParameterItem/1.0",
-            "name": "SelectedRule",
-            "type": 2,
-            "isRequired": false,
-            "multiSelect": false,
-            "quote": "'",
-            "delimiter": ",",
-            "query": "Resources\r\n| where type == \"microsoft.network/loadbalancers\"\r\n| where id == \"{SelectedLoadBalancer}\"\r\n| mv-expand rule = properties.loadBalancingRules\r\n| extend RuleName = tostring(rule.name)\r\n| project value = RuleName, label = RuleName, selected = false\r\n| order by label asc",
-            "crossComponentResources": [
-              "{Subscription}"
-            ],
-            "typeSettings": {
-              "additionalResourceOptions": [],
-              "showDefault": false
-            },
-            "queryType": 1,
-            "resourceType": "microsoft.resourcegraph/resources",
-            "value": null,
-            "conditionalVisibility": {
-              "parameterName": "SelectedLoadBalancer",
-              "comparison": "isNotEqualTo"
-            }
           }
         ],
         "style": "pills",
@@ -740,11 +718,6 @@
         "size": 0,
         "title": "Load Balancing Rules",
         "noDataMessage": "Select a Load Balancer above to view its rules.",
-        "queryType": 1,
-        "resourceType": "microsoft.resourcegraph/resources",
-        "crossComponentResources": [
-          "{Subscription}"
-        ],
         "exportedParameters": [
           {
             "fieldName": "RuleName",
@@ -766,6 +739,11 @@
             "parameterName": "SelectedLBSubForHealth",
             "parameterType": 1
           }
+        ],
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
         ],
         "gridSettings": {
           "rowLimit": 100,

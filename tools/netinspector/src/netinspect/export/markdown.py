@@ -4,11 +4,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from netinspect.export.mermaid import generate_mermaid_diagrams
+from netinspect.export.mermaid import (
+    DEFAULT_MAX_VNETS_PER_DIAGRAM,
+    DiagramDetail,
+    generate_mermaid_diagrams,
+)
 from netinspect.models.types import Topology
 
 
-def generate_report(topology: Topology, *, include_analysis: bool = False) -> str:
+def generate_report(
+    topology: Topology,
+    *,
+    include_analysis: bool = False,
+    diagram_detail: DiagramDetail = DiagramDetail.standard,
+    max_vnets: int = DEFAULT_MAX_VNETS_PER_DIAGRAM,
+) -> str:
     """Generate a full Markdown report for the network topology."""
     sections = [
         _header(topology),
@@ -17,7 +27,7 @@ def generate_report(topology: Topology, *, include_analysis: bool = False) -> st
         sections.append(_findings_section(topology))
     sections.extend([
         _vnet_summary(topology),
-        _topology_diagram(topology),
+        _topology_diagram(topology, diagram_detail=diagram_detail, max_vnets=max_vnets),
         _peering_matrix(topology),
         _vpn_gateways_section(topology),
         _local_gateways_section(topology),
@@ -36,10 +46,20 @@ def generate_report(topology: Topology, *, include_analysis: bool = False) -> st
 
 
 def export_report(
-    topology: Topology, output_path: Path, *, include_analysis: bool = False,
+    topology: Topology,
+    output_path: Path,
+    *,
+    include_analysis: bool = False,
+    diagram_detail: DiagramDetail = DiagramDetail.standard,
+    max_vnets: int = DEFAULT_MAX_VNETS_PER_DIAGRAM,
 ) -> None:
     """Generate and write the Markdown report to a file."""
-    report = generate_report(topology, include_analysis=include_analysis)
+    report = generate_report(
+        topology,
+        include_analysis=include_analysis,
+        diagram_detail=diagram_detail,
+        max_vnets=max_vnets,
+    )
     output_path.write_text(report, encoding="utf-8")
 
 
@@ -144,8 +164,15 @@ def _vnet_summary(topology: Topology) -> str:
     return "\n".join(lines)
 
 
-def _topology_diagram(topology: Topology) -> str:
-    diagrams = generate_mermaid_diagrams(topology)
+def _topology_diagram(
+    topology: Topology,
+    *,
+    diagram_detail: DiagramDetail = DiagramDetail.standard,
+    max_vnets: int = DEFAULT_MAX_VNETS_PER_DIAGRAM,
+) -> str:
+    diagrams = generate_mermaid_diagrams(
+        topology, detail=diagram_detail, max_vnets=max_vnets,
+    )
     if not diagrams:
         return "## Network Topology Diagram\n\nNo VNets discovered."
 

@@ -21,7 +21,7 @@ def check_design(topology: Topology, report: AnalysisReport) -> None:
     _check_peering_asymmetry(topology, report)
     _check_hub_spoke_pattern(topology, report)
     _check_subnet_sizing(topology, report)
-    _check_dns_configuration(topology, report)
+    # DNS checks are in checks_dns.py
     _check_missing_route_propagation(topology, report)
 
 
@@ -285,33 +285,6 @@ def _check_subnet_sizing(
                     resource_id=subnet.id,
                     resource_name=f"{vnet.name}/{subnet.name}",
                 ))
-
-
-def _check_dns_configuration(
-    topology: Topology, report: AnalysisReport,
-) -> None:
-    """CAF — VNets should have consistent DNS configuration."""
-    dns_configs = set()
-    for vnet in topology.vnets:
-        dns_key = tuple(sorted(vnet.dns_servers)) or ("azure-default",)
-        dns_configs.add(dns_key)
-
-    if len(dns_configs) > 1 and len(topology.vnets) > 1:
-        report.add(Finding(
-            severity=Severity.INFO,
-            category=CAT,
-            title="Inconsistent DNS configuration across VNets",
-            description=(
-                "VNets have different DNS server configurations. "
-                "This can cause name resolution inconsistencies "
-                "for peered workloads."
-            ),
-            recommendation=(
-                "Use consistent DNS settings across peered VNets, "
-                "or leverage Azure Private DNS Zones for unified "
-                "name resolution."
-            ),
-        ))
 
 
 def _check_missing_route_propagation(

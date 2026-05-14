@@ -48,6 +48,7 @@ def generate_dns_report(topology: Topology) -> str:
     ]
 
     lines.extend(_vnet_dns_section(topology))
+    lines.extend(_dns_analysis_section(topology))
     lines.extend(_resolver_inventory_section(
         heading="## Private Resolver Inventory",
         resolvers=private_resolvers,
@@ -79,6 +80,34 @@ def generate_dns_report(topology: Topology) -> str:
 def export_dns_report(topology: Topology, output_path: Path) -> None:
     """Generate and write the DNS report in Markdown format."""
     output_path.write_text(generate_dns_report(topology), encoding="utf-8")
+
+
+def _dns_analysis_section(topology: Topology) -> list[str]:
+    """Run DNS-specific checks and return Markdown findings."""
+    from netinspect.analysis.checks_dns import check_dns
+    from netinspect.analysis.findings import AnalysisReport
+
+    report = AnalysisReport()
+    check_dns(topology, report)
+    if not report.findings:
+        return ["", "## DNS Analysis", "", "All DNS checks passed.", ""]
+
+    lines = [
+        "",
+        "## DNS Analysis",
+        "",
+        f"{report.critical_count} critical, {report.warning_count} warning, "
+        f"{report.info_count} info findings.",
+        "",
+    ]
+    for f in report.sorted_findings():
+        lines.append(f"### {f.severity_icon} [{f.severity.value}] {f.title}")
+        lines.append("")
+        lines.append(f"{f.description}")
+        lines.append("")
+        lines.append(f"**Recommendation:** {f.recommendation}")
+        lines.append("")
+    return lines
 
 
 def _resolver_scope(value: str) -> str:
