@@ -5,11 +5,21 @@ from __future__ import annotations
 from html import escape
 from ipaddress import ip_address
 
-from netinspect.export.mermaid import generate_mermaid_diagrams
+from netinspect.export.mermaid import (
+    DEFAULT_MAX_VNETS_PER_DIAGRAM,
+    DiagramDetail,
+    generate_mermaid_diagrams,
+)
 from netinspect.models.types import Topology
 
 
-def generate_topology_html(topology: Topology, *, include_analysis: bool = False) -> str:
+def generate_topology_html(
+    topology: Topology,
+    *,
+    include_analysis: bool = False,
+    diagram_detail: DiagramDetail = DiagramDetail.standard,
+    max_vnets: int = DEFAULT_MAX_VNETS_PER_DIAGRAM,
+) -> str:
     """Generate a static HTML topology report."""
     sections = [
         _summary_cards(
@@ -29,7 +39,7 @@ def generate_topology_html(topology: Topology, *, include_analysis: bool = False
             ],
         ),
         _vnet_overview(topology),
-        _topology_diagrams(topology),
+        _topology_diagrams(topology, diagram_detail=diagram_detail, max_vnets=max_vnets),
         _peering_details(topology),
         _private_dns_zones(topology),
         _resource_inventory(topology),
@@ -60,6 +70,7 @@ def generate_dns_html(topology: Topology) -> str:
                 ("Private DNS zones", str(len(topology.private_dns_zones))),
             ],
         ),
+        _dns_analysis_section(topology),
         _dns_flow_diagram(topology),
         _dns_vnet_table(topology),
         _resolver_table("Private Resolver Inventory", private_resolvers, resolver_usage),
@@ -262,6 +273,7 @@ def _page(*, title: str, subtitle: str, body_html: str) -> str:
         startOnLoad: true,
         theme: 'dark',
         securityLevel: 'loose',
+        maxTextSize: 200000,
         flowchart: {{ useMaxWidth: true, htmlLabels: true }},
       }});
     </script>
@@ -362,11 +374,18 @@ def _vnet_overview(topology: Topology) -> str:
     )
 
 
-def _topology_diagrams(topology: Topology) -> str:
+def _topology_diagrams(
+    topology: Topology,
+    *,
+    diagram_detail: DiagramDetail = DiagramDetail.standard,
+    max_vnets: int = DEFAULT_MAX_VNETS_PER_DIAGRAM,
+) -> str:
     if not topology.vnets:
         return ""
 
-    diagrams = generate_mermaid_diagrams(topology)
+    diagrams = generate_mermaid_diagrams(
+        topology, detail=diagram_detail, max_vnets=max_vnets,
+    )
     if not diagrams:
         return ""
 
@@ -479,19 +498,66 @@ def _zone_link_item(link) -> str:
     return f"<li>{escape(link.vnet_name)} ({registration})</li>"
 
 
+def _dns_analysis_section(topology: Topology) -> str:
+    """Run DNS-specific analysis and render findings."""
+    from netinspect.analysis.checks_dns import check_dns
+    from netinspect.analysis.findings import AnalysisReport
+
+    report = AnalysisReport()
+    check_dns(topology, report)
+    if not report.findings:
+        return (
+            '<section class="section-card"><h2>DNS Analysis</h2>'
+            '<p class="empty-state">No findings — all DNS checks passed.</p>'
+            "</section>"
+        )
+
+    rows = "".join(
+        (
+            "<tr>"
+            f"<td>{f.severity_icon} {escape(f.severity.value)}</td>"
+            f"<td>{escape(f.title)}</td>"
+            f"<td>{escape(f.description)}</td>"
+            f"<td>{escape(f.recommendation)}</td>"
+            "</tr>"
+        )
+        for f in report.sorted_findings()
+    )
+    return (
+        '<section class="section-card"><h2>DNS Analysis</h2>'
+        f"<p>{report.critical_count} critical, {report.warning_count} warning, "
+        f"{report.info_count} info findings.</p>"
+        "<table><thead><tr><th>Severity</th><th>Finding</th>"
+        "<th>Details</th><th>Recommendation</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></section>"
+    )
+
+
+_DNS_FLOW_MAX_VNETS = 30
+
+
 def _dns_flow_diagram(topology: Topology) -> str:
-    """Build a Mermaid diagram showing VNet → DNS resolver → Private DNS zone relationships."""
+    """Build Mermaid diagram(s) showing VNet → DNS resolver → Private DNS zone relationships."""
     if not topology.vnets:
         return ""
 
-    def _mid(name: str) -> str:
-        return name.replace("-", "_").replace(".", "_").replace(" ", "_")
+    if len(topology.vnets) <= _DNS_FLOW_MAX_VNETS:
+        return _dns_flow_detail(topology)
 
+    # Large topology: produce grouped overview + zone linkage diagram
+    return _dns_flow_overview(topology) + _dns_zone_linkage_diagrams(topology)
+
+
+def _mid(name: str) -> str:
+    return name.replace("-", "_").replace(".", "_").replace(" ", "_")
+
+
+def _dns_flow_detail(topology: Topology) -> str:
+    """Per-VNet DNS flow diagram (original logic, suitable for small topologies)."""
     lines = ["graph LR"]
 
-    # Collect unique DNS servers and zone links
     dns_servers: set[str] = set()
-    zone_vnet_links: dict[str, list[str]] = {}  # zone_name -> [vnet_names]
+    zone_vnet_links: dict[str, list[str]] = {}
     for zone in topology.private_dns_zones:
         for link in zone.vnet_links:
             zone_vnet_links.setdefault(zone.name, []).append(link.vnet_name)
@@ -499,7 +565,6 @@ def _dns_flow_diagram(topology: Topology) -> str:
     for vnet in topology.vnets:
         vid = _mid(vnet.name)
         lines.append(f'    {vid}["{vnet.name}"]')
-
         if vnet.dns_servers:
             for server in vnet.dns_servers:
                 sid = _mid(f"dns_{server}")
@@ -508,18 +573,15 @@ def _dns_flow_diagram(topology: Topology) -> str:
         else:
             lines.append(f"    {vid} -.->|Azure DNS| azure_dns")
 
-    # DNS server nodes
     for server in sorted(dns_servers):
         sid = _mid(f"dns_{server}")
         scope = _resolver_scope(server)
         icon = "🔒" if scope == "private" else "🌐"
         lines.append(f'    {sid}("{icon} {server}")')
 
-    # Azure DNS node (if any VNet uses default)
     if any(not v.dns_servers for v in topology.vnets):
         lines.append('    azure_dns(("☁️ Azure DNS"))')
 
-    # Private DNS zone nodes and links
     for zone_name, vnet_names in zone_vnet_links.items():
         zid = _mid(f"zone_{zone_name}")
         lines.append(f'    {zid}[/"📛 {zone_name}"/]')
@@ -534,6 +596,114 @@ def _dns_flow_diagram(topology: Topology) -> str:
         f'<pre class="mermaid">{escape(mermaid_src)}</pre>'
         "</div></section>"
     )
+
+
+def _dns_flow_overview(topology: Topology) -> str:
+    """Grouped DNS resolver flow: VNets grouped by DNS configuration pattern."""
+    from collections import Counter
+
+    # Group VNets by their DNS config
+    config_groups: dict[tuple[str, ...], list[str]] = {}
+    for vnet in topology.vnets:
+        key = tuple(sorted(vnet.dns_servers)) if vnet.dns_servers else ()
+        config_groups.setdefault(key, []).append(vnet.name)
+
+    lines = ["graph LR"]
+    dns_servers: set[str] = set()
+
+    for idx, (config, vnet_names) in enumerate(
+        sorted(config_groups.items(), key=lambda x: -len(x[1]))
+    ):
+        gid = f"grp_{idx}"
+        count = len(vnet_names)
+        if not config:
+            label = f"{count} VNets\\nAzure Default DNS"
+            lines.append(f'    {gid}["{label}"]')
+            lines.append(f'    {gid} -.->|Azure DNS| azure_dns')
+        else:
+            sample = vnet_names[0]
+            if count == 1:
+                label = escape(sample)
+            else:
+                label = f"{count} VNets\\ne.g. {escape(sample[:40])}"
+            lines.append(f'    {gid}["{label}"]')
+            for server in config:
+                sid = _mid(f"dns_{server}")
+                dns_servers.add(server)
+                lines.append(f"    {gid} --> {sid}")
+
+    for server in sorted(dns_servers):
+        sid = _mid(f"dns_{server}")
+        scope = _resolver_scope(server)
+        icon = "🔒" if scope == "private" else "🌐"
+        lines.append(f'    {sid}("{icon} {server}")')
+
+    if () in config_groups:
+        lines.append('    azure_dns(("☁️ Azure DNS"))')
+
+    mermaid_src = "\n".join(lines)
+    return (
+        '<section class="section-card"><h2>DNS Resolution Flow</h2>'
+        "<p>VNets grouped by DNS configuration pattern.</p>"
+        '<div class="mermaid-diagram">'
+        f'<pre class="mermaid">{escape(mermaid_src)}</pre>'
+        "</div></section>"
+    )
+
+
+def _dns_zone_linkage_diagrams(topology: Topology) -> str:
+    """Private DNS zone linkage diagram(s), chunked if needed."""
+    zone_vnet_links: dict[str, list[str]] = {}
+    for zone in topology.private_dns_zones:
+        for link in zone.vnet_links:
+            zone_vnet_links.setdefault(zone.name, []).append(link.vnet_name)
+
+    if not zone_vnet_links:
+        return ""
+
+    # Estimate total edges; chunk zones so each diagram stays manageable
+    max_edges_per_diagram = 120
+    chunks: list[list[tuple[str, list[str]]]] = []
+    current_chunk: list[tuple[str, list[str]]] = []
+    current_edges = 0
+
+    for zone_name in sorted(zone_vnet_links):
+        vnet_names = zone_vnet_links[zone_name]
+        if current_edges + len(vnet_names) > max_edges_per_diagram and current_chunk:
+            chunks.append(current_chunk)
+            current_chunk = []
+            current_edges = 0
+        current_chunk.append((zone_name, vnet_names))
+        current_edges += len(vnet_names)
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    html_parts: list[str] = []
+    for ci, chunk in enumerate(chunks):
+        title = "Private DNS Zone Links"
+        if len(chunks) > 1:
+            title += f" ({ci + 1}/{len(chunks)})"
+
+        lines = ["graph LR"]
+        seen_vnets: set[str] = set()
+        for zone_name, vnet_names in chunk:
+            zid = _mid(f"zone_{zone_name}")
+            lines.append(f'    {zid}[/"📛 {zone_name}"/]')
+            for vnet_name in vnet_names:
+                vid = _mid(vnet_name)
+                if vid not in seen_vnets:
+                    lines.append(f'    {vid}["{vnet_name}"]')
+                    seen_vnets.add(vid)
+                lines.append(f"    {vid} -.->|link| {zid}")
+
+        mermaid_src = "\n".join(lines)
+        html_parts.append(
+            f'<section class="section-card"><h2>{escape(title)}</h2>'
+            '<div class="mermaid-diagram">'
+            f'<pre class="mermaid">{escape(mermaid_src)}</pre>'
+            "</div></section>"
+        )
+    return "".join(html_parts)
 
 
 def _dns_inventory(

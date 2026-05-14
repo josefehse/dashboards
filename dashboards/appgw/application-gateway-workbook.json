@@ -351,7 +351,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend PoolName = tostring(backendPool.name)\r\n| extend ProvisioningState = tostring(backendPool.properties.provisioningState)\r\n| extend BackendAddresses = backendPool.properties.backendAddresses\r\n| extend BackendIPConfigs = backendPool.properties.backendIPConfigurations\r\n| extend AddressCount = coalesce(array_length(BackendAddresses), 0)\r\n| extend IPConfigCount = coalesce(array_length(BackendIPConfigs), 0)\r\n| mv-expand address = BackendAddresses\r\n| extend FQDN = tostring(address.fqdn)\r\n| extend IPAddress = tostring(address.ipAddress)\r\n| extend Target = coalesce(FQDN, IPAddress, '')\r\n| summarize Targets = make_list(Target) by PoolName, AddressCount, IPConfigCount, ProvisioningState\r\n| extend TargetsDisplay = iff(array_length(Targets) > 0 and Targets[0] != '', strcat_array(Targets, ', '), 'No targets configured')\r\n| project ['Backend Pool'] = PoolName, ['Target Count'] = AddressCount + IPConfigCount, ['Targets'] = TargetsDisplay, ['Provisioning State'] = ProvisioningState",
+        "query": "Resources\r\n| where type == \"microsoft.network/applicationgateways\"\r\n| where id == \"{SelectedAppGateway}\"\r\n| mv-expand backendPool = properties.backendAddressPools\r\n| extend PoolName = tostring(backendPool.name)\r\n| extend ProvisioningState = tostring(backendPool.properties.provisioningState)\r\n| extend BackendAddresses = backendPool.properties.backendAddresses\r\n| extend BackendIPConfigs = backendPool.properties.backendIPConfigurations\r\n| extend AddressCount = coalesce(array_length(BackendAddresses), 0)\r\n| extend IPConfigCount = coalesce(array_length(BackendIPConfigs), 0)\r\n| extend AllTargets = array_concat(iff(AddressCount > 0, BackendAddresses, dynamic([])), iff(IPConfigCount > 0, BackendIPConfigs, dynamic([])))\r\n| extend AllTargets = iff(array_length(AllTargets) == 0, pack_array(dynamic(null)), AllTargets)\r\n| mv-expand target = AllTargets\r\n| extend TargetDisplay = case(isnotempty(tostring(target.fqdn)), tostring(target.fqdn), isnotempty(tostring(target.ipAddress)), tostring(target.ipAddress), isnotempty(tostring(target.id)) and tostring(target.id) contains 'virtualMachineScaleSets', strcat('VMSS: ', tostring(split(tostring(target.id), '/')[8])), isnotempty(tostring(target.id)) and tostring(target.id) contains 'networkInterfaces', strcat('NIC: ', tostring(split(tostring(target.id), '/')[8])), '')\r\n| summarize Targets = make_set_if(TargetDisplay, isnotempty(TargetDisplay)) by PoolName, AddressCount, IPConfigCount, ProvisioningState\r\n| extend TargetType = case(AddressCount > 0 and IPConfigCount > 0, 'Mixed', IPConfigCount > 0, 'VMSS/VM', AddressCount > 0, 'Address', 'Empty')\r\n| extend TargetsDisplay = iff(array_length(Targets) > 0, strcat_array(Targets, ', '), 'No targets configured')\r\n| project ['Backend Pool'] = PoolName, ['Target Type'] = TargetType, ['Target Count'] = AddressCount + IPConfigCount, ['Targets'] = TargetsDisplay, ['Provisioning State'] = ProvisioningState",
         "size": 0,
         "title": "Backend Address Pools",
         "queryType": 1,
@@ -361,6 +361,39 @@
         ],
         "gridSettings": {
           "formatters": [
+            {
+              "columnMatch": "Target Type",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "VMSS/VM",
+                    "representation": "blue",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Address",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Empty",
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "gray",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
             {
               "columnMatch": "Provisioning State",
               "formatter": 18,

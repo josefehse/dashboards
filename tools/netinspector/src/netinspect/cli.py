@@ -54,6 +54,14 @@ def discover(
         False, "--analyse/--no-analyse",
         help="Include CAF/WAF analysis findings in the report",
     ),
+    diagram_detail: str = typer.Option(
+        "standard", "--diagram-detail",
+        help="Diagram detail level: summary (VNets only), standard (with subnets), full (+ NSGs/RTs/DNS)",
+    ),
+    max_vnets: int = typer.Option(
+        15, "--max-vnets-per-diagram",
+        help="Max VNets per diagram before auto-chunking into overview + detail layers",
+    ),
 ) -> None:
     """Discover Azure network topology and export it."""
     from azure.mgmt.network import NetworkManagementClient
@@ -231,7 +239,14 @@ def discover(
 
     # Export report if requested
     if report:
-        export_topology_report(topology, report, include_analysis=analyse)
+        from netinspect.export.mermaid import DiagramDetail
+        detail = DiagramDetail(diagram_detail)
+        export_topology_report(
+            topology, report,
+            include_analysis=analyse,
+            diagram_detail=detail,
+            max_vnets=max_vnets,
+        )
         console.print(f"[green]✅ Report saved to:[/green] {report}")
 
     if dns_report:
@@ -582,10 +597,19 @@ def report(
         False, "--analyse/--no-analyse",
         help="Include CAF/WAF analysis findings in the report",
     ),
+    diagram_detail: str = typer.Option(
+        "standard", "--diagram-detail",
+        help="Diagram detail level: summary (VNets only), standard (with subnets), full (+ NSGs/RTs/DNS)",
+    ),
+    max_vnets: int = typer.Option(
+        15, "--max-vnets-per-diagram",
+        help="Max VNets per diagram before auto-chunking into overview + detail layers",
+    ),
 ) -> None:
     """Generate a topology report from a previously saved topology snapshot."""
 
     from netinspect.export.json_export import load_json
+    from netinspect.export.mermaid import DiagramDetail
     from netinspect.export.reporting import export_topology_report
 
     if not input.exists():
@@ -598,7 +622,13 @@ def report(
     # Reconstruct Topology from dict
     topology = _topology_from_dict(data)
 
-    export_topology_report(topology, output, include_analysis=analyse)
+    detail = DiagramDetail(diagram_detail)
+    export_topology_report(
+        topology, output,
+        include_analysis=analyse,
+        diagram_detail=detail,
+        max_vnets=max_vnets,
+    )
     console.print(f"[green]✅ Report saved to:[/green] {output}")
 
 
