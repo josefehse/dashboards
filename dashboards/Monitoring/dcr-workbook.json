@@ -1,0 +1,300 @@
+﻿{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Azure Monitor — Data Collection Rules\n---\nInventory of all DCRs in the selected scope with source and destination types, transformation status, and target assignment count.\n\n> **Tip:** Click a row in the DCR grid to expand the list of associated targets below."
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "parameters": [
+          {
+            "id": "subscription-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": false,
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "rg-param",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroup",
+            "label": "Resource Group",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "resources\n| where type =~ 'microsoft.insights/datacollectionrules'\n| distinct resourceGroup\n| order by resourceGroup asc\n| project value = resourceGroup, label = resourceGroup",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ]
+          }
+        ],
+        "style": "pills",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "resources\r\n| where type =~ 'microsoft.insights/datacollectionrules'\r\n| where resourceGroup in~ ({ResourceGroup})\r\n| extend dcrId = tolower(id)\r\n| extend dataSources = properties.dataSources\r\n| extend destinations = properties.destinations\r\n| extend dataFlows = properties.dataFlows\r\n// Build source-type label\r\n| extend srcList = trim(', ', strcat(\r\n    iff(array_length(dataSources.performanceCounters) > 0, 'PerfCounters, ', ''),\r\n    iff(array_length(dataSources.performanceCountersOTel) > 0, 'OtelPerfCounters, ', ''),\r\n    iff(array_length(dataSources.windowsEventLogs) > 0, 'WindowsEvents, ', ''),\r\n    iff(array_length(dataSources.syslog) > 0, 'Syslog, ', ''),\r\n    iff(array_length(dataSources.extensions) > 0, 'Extensions, ', ''),\r\n    iff(array_length(dataSources.logFiles) > 0, 'LogFiles, ', ''),\r\n    iff(array_length(dataSources.iisLogs) > 0, 'IISLogs, ', ''),\r\n    iff(array_length(dataSources.prometheusForwarder) > 0, 'Prometheus, ', '')))\r\n| extend srcList = iff(isempty(srcList), 'None', srcList)\r\n// Extract actual destination resource names; fall back to generic labels for types without a named resource ID\r\n| extend la_name = iff(array_length(destinations.logAnalytics) > 0, tostring(split(tostring(destinations.logAnalytics[0].workspaceResourceId), '/')[-1]), '')\r\n| extend amw_name = iff(array_length(destinations.monitoringAccounts) > 0, tostring(split(tostring(destinations.monitoringAccounts[0].accountResourceId), '/')[-1]), '')\r\n| extend dstList = trim(', ', strcat(\r\n    iff(isnotempty(la_name), strcat(la_name, ', '), ''),\r\n    iff(isnotempty(amw_name), strcat(amw_name, ', '), ''),\r\n    iff(isnotnull(destinations.azureMonitorMetrics), 'AzMon Metrics, ', ''),\r\n    iff(array_length(destinations.eventHubs) > 0, 'Event Hub, ', ''),\r\n    iff(array_length(destinations.storageAccounts) > 0, 'Storage, ', '')))\r\n| extend dstList = iff(isempty(dstList), 'None', dstList)\r\n| extend primaryDstId = iff(isnotempty(la_name), tostring(destinations.logAnalytics[0].workspaceResourceId),\r\n    iff(isnotempty(amw_name), tostring(destinations.monitoringAccounts[0].accountResourceId), ''))\r\n// Detect KQL transformations: any dataFlow with transformKql set to something other than the passthrough 'source'\r\n| extend dataFlowsStr = tostring(dataFlows)\r\n| extend hasTransform = case(\r\n    not (dataFlowsStr contains 'transformKql'), 'No',\r\n    dataFlowsStr contains '\"transformKql\":\"source\"', 'No',\r\n    dataFlowsStr contains '\"transformKql\": \"source\"', 'No',\r\n    'Yes')\r\n// Count associations\r\n| join kind=leftouter (\r\n    insightsresources\r\n    | where type =~ 'microsoft.insights/datacollectionruleassociations'\r\n    | where isnotempty(tostring(properties.dataCollectionRuleId))\r\n    | extend dcrId = tolower(tostring(properties.dataCollectionRuleId))\r\n    | where isnotnull(properties.dataCollectionRuleId)\r\n    | summarize Targets = count() by dcrId\r\n) on dcrId\r\n| extend Targets = coalesce(Targets, 0)\r\n| project id, name,\r\n    ['Resource Group'] = resourceGroup,\r\n    Location = location,\r\n    Kind = iff(isempty(tostring(properties.kind)), 'Standard', tostring(properties.kind)),\r\n    Sources = srcList,\r\n    Destinations = dstList,\r\n    primaryDstId,\r\n    Transformation = hasTransform,\r\n    Targets\r\n| order by name asc",
+        "size": 0,
+        "title": "Data Collection Rules",
+        "noDataMessage": "No Data Collection Rules found in the selected scope.",
+        "exportedParameters": [
+          {
+            "fieldName": "id",
+            "parameterName": "SelectedDCR",
+            "parameterType": 1
+          },
+          {
+            "fieldName": "name",
+            "parameterName": "SelectedDCRName",
+            "parameterType": 1
+          }
+        ],
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "id",
+              "formatter": 13,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "linkIsContextBlade": false
+              }
+            },
+            {
+              "columnMatch": "name",
+              "formatter": 5
+            },
+            {
+              "columnMatch": "Destinations",
+              "formatter": 7,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "linkIsContextBlade": false,
+                "linkColumn": "primaryDstId"
+              }
+            },
+            {
+              "columnMatch": "primaryDstId",
+              "formatter": 5
+            },
+            {
+              "columnMatch": "Transformation",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Yes",
+                    "representation": "blue",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "gray",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "Targets",
+              "formatter": 4,
+              "formatOptions": {
+                "min": 0,
+                "palette": "blue"
+              }
+            }
+          ],
+          "rowLimit": 500,
+          "filter": true,
+          "labelSettings": [
+            {
+              "columnId": "id",
+              "label": "DCR"
+            },
+            {
+              "columnId": "Resource Group",
+              "label": "Resource Group"
+            },
+            {
+              "columnId": "Location",
+              "label": "Location"
+            },
+            {
+              "columnId": "Kind",
+              "label": "Kind"
+            },
+            {
+              "columnId": "Sources",
+              "label": "Data Sources"
+            },
+            {
+              "columnId": "Destinations",
+              "label": "Destinations"
+            },
+            {
+              "columnId": "Transformation",
+              "label": "Transformation"
+            },
+            {
+              "columnId": "Targets",
+              "label": "Targets"
+            }
+          ]
+        }
+      },
+      "name": "dcr-list",
+      "styleSettings": {
+        "showBorder": true
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n### Targets assigned to: **{SelectedDCRName}**"
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedDCR",
+        "comparison": "isNotEqualTo",
+        "value": ""
+      },
+      "name": "targets-header"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "insightsresources\r\n| where type =~ 'microsoft.insights/datacollectionruleassociations'\r\n| where isnotnull(properties.dataCollectionRuleId)\r\n| where tostring(properties.dataCollectionRuleId) =~ '{SelectedDCR}'\r\n// Derive the target resource ID by stripping the DCRA extension path\r\n| extend targetId = tostring(split(tolower(id), '/providers/microsoft.insights/datacollectionruleassociations')[0])\r\n| extend targetRG = tostring(split(targetId, '/')[4])\r\n| extend targetType = case(\r\n    targetId contains '/virtualmachines/', 'Virtual Machine',\r\n    targetId contains '/virtualmachinescalesets/', 'VMSS',\r\n    targetId contains '/managedclusters/', 'AKS',\r\n    targetId contains '/machines/', 'Arc Machine',\r\n    'Other')\r\n| project targetId,\r\n    Association = name,\r\n    ['Resource Group'] = targetRG,\r\n    ['Target Type'] = targetType,\r\n    ['Provisioning State'] = tostring(properties.provisioningState)\r\n| order by ['Target Type'] asc, targetId asc",
+        "size": 0,
+        "title": "Associated Resources",
+        "noDataMessage": "No associations found for this DCR.",
+        "queryType": 1,
+        "resourceType": "microsoft.resourcegraph/resources",
+        "crossComponentResources": [
+          "{Subscription}"
+        ],
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "targetId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "linkIsContextBlade": false
+              }
+            },
+            {
+              "columnMatch": "Provisioning State",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Succeeded",
+                    "representation": "green",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "Failed",
+                    "representation": "red",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "orange",
+                    "text": "{0}{1}"
+                  }
+                ]
+              }
+            }
+          ],
+          "rowLimit": 500,
+          "filter": true,
+          "labelSettings": [
+            {
+              "columnId": "targetId",
+              "label": "Target Resource"
+            },
+            {
+              "columnId": "Association",
+              "label": "Association Name"
+            },
+            {
+              "columnId": "Resource Group",
+              "label": "Resource Group"
+            },
+            {
+              "columnId": "Target Type",
+              "label": "Target Type"
+            },
+            {
+              "columnId": "Provisioning State",
+              "label": "Provisioning State"
+            }
+          ]
+        }
+      },
+      "conditionalVisibility": {
+        "parameterName": "SelectedDCR",
+        "comparison": "isNotEqualTo",
+        "value": ""
+      },
+      "name": "dcra-list",
+      "styleSettings": {
+        "showBorder": true
+      }
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

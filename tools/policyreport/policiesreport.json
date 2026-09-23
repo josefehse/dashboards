@@ -1,0 +1,194 @@
+{
+  "GeneratedAt": "2026-06-26T17:03:47.4399015-04:00",
+  "SubscriptionId": "e315fe54-eae5-464d-8266-0f41a0908da8",
+  "TotalAssignments": 5,
+  "TotalInitiatives": 2,
+  "TotalPolicies": 3,
+  "Items": [
+    {
+      "Id": "/providers/Microsoft.Authorization/policySetDefinitions/e77fc0b3-f7e9-4c58-bc13-cb753ed8e46e",
+      "Name": "e77fc0b3-f7e9-4c58-bc13-cb753ed8e46e",
+      "DisplayName": "Configure Advanced Threat Protection to be enabled on open-source relational databases",
+      "Type": "Initiative",
+      "CreationScope": {
+        "Type": "BuiltIn",
+        "Value": "Global",
+        "Raw": "/providers/Microsoft.Authorization/policySetDefinitions/e77fc0b3-f7e9-4c58-bc13-cb753ed8e46e"
+      },
+      "AssignmentCount": 1,
+      "AssignmentScopes": [
+        {
+          "Type": "Subscription",
+          "Value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        }
+      ],
+      "Assignments": [
+        {
+          "AssignmentName": "OpenSourceRelationalDatabasesProtectionSecurityCenter",
+          "AssignmentId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyAssignments/OpenSourceRelationalDatabasesProtectionSecurityCenter",
+          "DefinitionName": "Configure Advanced Threat Protection to be enabled on open-source relational databases",
+          "DefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/e77fc0b3-f7e9-4c58-bc13-cb753ed8e46e"
+        }
+      ],
+      "Children": [
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/db048e65-913c-49f9-bb5f-1084184671d3",
+          "Name": "db048e65-913c-49f9-bb5f-1084184671d3",
+          "DisplayName": "Configure Advanced Threat Protection to be enabled on Azure database for PostgreSQL servers",
+          "ReferenceId": "deployAtpOnAzureDatabaseForPostgreSqlServer"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/80ed5239-4122-41ed-b54a-6f1fa7552816",
+          "Name": "80ed5239-4122-41ed-b54a-6f1fa7552816",
+          "DisplayName": "Configure Advanced Threat Protection to be enabled on Azure database for MySQL servers",
+          "ReferenceId": "deployAtpOnAzureDatabaseForMySqlServer"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/a6cf7411-da9e-49e2-aec0-cba0250eaf8c",
+          "Name": "a6cf7411-da9e-49e2-aec0-cba0250eaf8c",
+          "DisplayName": "Configure Advanced Threat Protection to be enabled on Azure database for MariaDB servers",
+          "ReferenceId": "deployAdvancedThreatProtectionOnAzureDatabaseForMariaDbServer"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/2a6ae02f-7590-40d7-88ba-b18e205a32fd",
+          "Name": "2a6ae02f-7590-40d7-88ba-b18e205a32fd",
+          "DisplayName": "Configure Advanced Threat Protection to be enabled on Azure database for PostgreSQL flexible servers",
+          "ReferenceId": "deployAtpOnAzureDatabaseForPostgreSqlFlexibleServer"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/3d5ed4c2-5e50-4c76-932b-8982691b68ae",
+          "Name": "3d5ed4c2-5e50-4c76-932b-8982691b68ae",
+          "DisplayName": "Configure Advanced Threat Protection to be enabled on Azure database for MySQL flexible servers",
+          "ReferenceId": "deployAtpOnAzureDatabaseForMySqlFlexibleServer"
+        }
+      ]
+    },
+    {
+      "Id": "/providers/Microsoft.Authorization/policySetDefinitions/c1529623-9fc2-45bc-b84b-b14cd0b7484e",
+      "Name": "c1529623-9fc2-45bc-b84b-b14cd0b7484e",
+      "DisplayName": "Configure SQL VMs and Arc-enabled SQL Servers to install Microsoft Defender extension",
+      "Type": "Initiative",
+      "CreationScope": {
+        "Type": "BuiltIn",
+        "Value": "Global",
+        "Raw": "/providers/Microsoft.Authorization/policySetDefinitions/c1529623-9fc2-45bc-b84b-b14cd0b7484e"
+      },
+      "AssignmentCount": 1,
+      "AssignmentScopes": [
+        {
+          "Type": "Subscription",
+          "Value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        }
+      ],
+      "Assignments": [
+        {
+          "AssignmentName": "SqlVmAndArcSqlServersProtection",
+          "AssignmentId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyAssignments/SqlVmAndArcSqlServersProtection",
+          "DefinitionName": "Configure SQL VMs and Arc-enabled SQL Servers to install Microsoft Defender extension",
+          "DefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/c1529623-9fc2-45bc-b84b-b14cd0b7484e"
+        }
+      ],
+      "Children": [
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/813e1e44-914e-436d-a2ab-84c4529a6084",
+          "Name": "813e1e44-914e-436d-a2ab-84c4529a6084",
+          "DisplayName": "Assign System Assigned identity to SQL Virtual Machines",
+          "ReferenceId": "MDC_DfSQL_SystemAssignedIdentity_VM"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/9345b7fb-67c5-496c-9f12-eaa74f676875",
+          "Name": "9345b7fb-67c5-496c-9f12-eaa74f676875",
+          "DisplayName": "Configure SQL Virtual Machines to automatically install Microsoft Defender for SQL extension",
+          "ReferenceId": "MDC_DfSQL_DeployMicrosoftDefenderForSQLWindowsAgent_VM"
+        },
+        {
+          "Id": "/providers/Microsoft.Authorization/policyDefinitions/65503269-6a54-4553-8a28-0065a8e6d929",
+          "Name": "65503269-6a54-4553-8a28-0065a8e6d929",
+          "DisplayName": "Configure Arc-enabled SQL Servers to automatically install Microsoft Defender for SQL",
+          "ReferenceId": "MDC_DfSQL_DeployMicrosoftDefenderForSQLWindowsAgent_Arc"
+        }
+      ]
+    },
+    {
+      "Id": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/CE-Spokes",
+      "Name": "CE-Spokes",
+      "DisplayName": "CE-Spokes",
+      "Type": "Policy",
+      "CreationScope": {
+        "Type": "BuiltIn",
+        "Value": "Global",
+        "Raw": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/CE-Spokes"
+      },
+      "AssignmentCount": 1,
+      "AssignmentScopes": [
+        {
+          "Type": "Subscription",
+          "Value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        }
+      ],
+      "Assignments": [
+        {
+          "AssignmentName": "CE-Spokes",
+          "AssignmentId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyAssignments/CE-Spokes",
+          "DefinitionName": "CE-Spokes",
+          "DefinitionId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/CE-Spokes"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "Id": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/7ff9f97e210545b9abcbb8da",
+      "Name": "7ff9f97e210545b9abcbb8da",
+      "DisplayName": "Enable logging by category group for Azure Synapse Analytics (microsoft.synapse/workspaces) to Log Analytics 2",
+      "Type": "Policy",
+      "CreationScope": {
+        "Type": "BuiltIn",
+        "Value": "Global",
+        "Raw": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/7ff9f97e210545b9abcbb8da"
+      },
+      "AssignmentCount": 1,
+      "AssignmentScopes": [
+        {
+          "Type": "Subscription",
+          "Value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        }
+      ],
+      "Assignments": [
+        {
+          "AssignmentName": "fc77c2c013764b86aca8c8b1",
+          "AssignmentId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyAssignments/fc77c2c013764b86aca8c8b1",
+          "DefinitionName": "Enable logging by category group for Azure Synapse Analytics (microsoft.synapse/workspaces) to Log Analytics 2",
+          "DefinitionId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/7ff9f97e210545b9abcbb8da"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "Id": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/VNetsInCC",
+      "Name": "VNetsInCC",
+      "DisplayName": "VNetsInCC",
+      "Type": "Policy",
+      "CreationScope": {
+        "Type": "BuiltIn",
+        "Value": "Global",
+        "Raw": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/VNetsInCC"
+      },
+      "AssignmentCount": 1,
+      "AssignmentScopes": [
+        {
+          "Type": "Subscription",
+          "Value": "e315fe54-eae5-464d-8266-0f41a0908da8"
+        }
+      ],
+      "Assignments": [
+        {
+          "AssignmentName": "VNetsInCC",
+          "AssignmentId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyAssignments/VNetsInCC",
+          "DefinitionName": "VNetsInCC",
+          "DefinitionId": "/subscriptions/e315fe54-eae5-464d-8266-0f41a0908da8/providers/Microsoft.Authorization/policyDefinitions/VNetsInCC"
+        }
+      ],
+      "Children": []
+    }
+  ]
+}

@@ -2,5 +2,10 @@
     "azureFunctions.deploySubpath": "tools\\AUM\\Function",
     "azureFunctions.projectLanguage": "PowerShell",
     "azureFunctions.projectRuntime": "~4",
-    "debug.internalConsoleOptions": "neverOpen"
+    "debug.internalConsoleOptions": "neverOpen",
+    "chat.tools.terminal.autoApprove": {
+        "az": true,
+        "ConvertFrom-Json": true,
+        "ConvertTo-Json": true
+    }
 }
