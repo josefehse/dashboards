@@ -1,0 +1,198 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "c42dfe82-717e-4b06-8ec2-80f494928db2",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "label": "Subscriptions",
+            "type": 6,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "value": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            }
+          },
+          {
+            "id": "0c88ae09-97e4-4af4-9b57-aed46d6c270c",
+            "version": "KqlParameterItem/1.0",
+            "name": "ResourceGroup",
+            "label": "Resource groups",
+            "type": 2,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "value": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            },
+            "query": "ResourceContainers\n| where type =~ 'microsoft.resources/subscriptions/resourcegroups'\n| project value = name, label = strcat(name, '  (', subscriptionId, ')')\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources"
+          },
+          {
+            "id": "49681c83-e3d6-44f1-945d-717ea19eef97",
+            "version": "KqlParameterItem/1.0",
+            "name": "VirtualMachine",
+            "label": "Virtual machines",
+            "type": 2,
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "value": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "includeAll": true
+            },
+            "query": "Resources\n| where type =~ 'microsoft.compute/virtualmachines'\n| where '{ResourceGroup:label}' == 'All' or resourceGroup in~ ({ResourceGroup})\n| project value = id, label = strcat(name, '  (', resourceGroup, ' / ', location, ')')\n| order by label asc",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources"
+          },
+          {
+            "id": "65b85676-a6c5-4264-9cd2-e31dfca07752",
+            "version": "KqlParameterItem/1.0",
+            "name": "TargetRegion",
+            "label": "Target region",
+            "type": 2,
+            "isRequired": true,
+            "value": "centralus",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "jsonData": "[{\"value\":\"australiacentral\",\"label\":\"Australia Central\"},{\"value\":\"australiaeast\",\"label\":\"Australia East\"},{\"value\":\"australiasoutheast\",\"label\":\"Australia Southeast\"},{\"value\":\"brazilsouth\",\"label\":\"Brazil South\"},{\"value\":\"canadacentral\",\"label\":\"Canada Central\"},{\"value\":\"canadaeast\",\"label\":\"Canada East\"},{\"value\":\"centralindia\",\"label\":\"Central India\"},{\"value\":\"centralus\",\"label\":\"Central US\"},{\"value\":\"eastasia\",\"label\":\"East Asia\"},{\"value\":\"eastus\",\"label\":\"East US\"},{\"value\":\"eastus2\",\"label\":\"East US 2\"},{\"value\":\"francecentral\",\"label\":\"France Central\"},{\"value\":\"germanywestcentral\",\"label\":\"Germany West Central\"},{\"value\":\"japaneast\",\"label\":\"Japan East\"},{\"value\":\"japanwest\",\"label\":\"Japan West\"},{\"value\":\"koreacentral\",\"label\":\"Korea Central\"},{\"value\":\"northcentralus\",\"label\":\"North Central US\"},{\"value\":\"northeurope\",\"label\":\"North Europe\"},{\"value\":\"norwayeast\",\"label\":\"Norway East\"},{\"value\":\"southafricanorth\",\"label\":\"South Africa North\"},{\"value\":\"southcentralus\",\"label\":\"South Central US\"},{\"value\":\"southeastasia\",\"label\":\"Southeast Asia\"},{\"value\":\"southindia\",\"label\":\"South India\"},{\"value\":\"swedencentral\",\"label\":\"Sweden Central\"},{\"value\":\"switzerlandnorth\",\"label\":\"Switzerland North\"},{\"value\":\"uaenorth\",\"label\":\"UAE North\"},{\"value\":\"uksouth\",\"label\":\"UK South\"},{\"value\":\"ukwest\",\"label\":\"UK West\"},{\"value\":\"westcentralus\",\"label\":\"West Central US\"},{\"value\":\"westeurope\",\"label\":\"West Europe\"},{\"value\":\"westindia\",\"label\":\"West India\"},{\"value\":\"westus\",\"label\":\"West US\"},{\"value\":\"westus2\",\"label\":\"West US 2\"},{\"value\":\"westus3\",\"label\":\"West US 3\"}]"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "ScopeParameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "### RequiresAction\n**TRUE (orange):** The VM is a **MANA candidate now** and at least one NIC has Accelerated Networking enabled, or NIC visibility for that candidate is incomplete and must be checked. **FALSE (green):** The VM is not a current MANA candidate (Timeline under review or UNKNOWN), or all its attached NICs are visible and explicitly report Accelerated Networking disabled. Read access to the VM and every attached NIC is required to evaluate NIC state. FALSE means no action under this rule, not proven MANA readiness or complete evidence.\n\n### MANA candidate status\n**MANA candidate now:** Dv5/Dsv5/Ddv5/Ddsv5/Dlsv5/Dldsv5, Ev5/Esv5/Edv5/Edsv5, Dpsv6/Dpdsv6/Dplsv6/Dpldsv6, Epsv6/Epdsv6. **Timeline under review:** Dv4/Dsv4/Ddv4/Ddsv4, Ev4/Esv4/Edv4/Edsv4, Dv3/Dsv3/Ev3/Esv3, Bsv2, Dv2/Dsv2/Av2, F/Fs/Fsv2, G/GS, Ls. **UNKNOWN:** Any SKU not in those lists; this does not mean unsupported. Classification is based on the supplied family list, not actual host hardware. All SKU generations can appear; the existing supported-OS and scope filters still apply. Only MANA candidate now can produce RequiresAction=TRUE."
+      },
+      "name": "RequiresActionExplanation"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "**Accelerated Networking:** Enabled means at least one NIC reports acceleration enabled. Disabled means all expected NICs are visible and explicitly report it disabled. UNKNOWN means NIC metadata is missing or incomplete. This column shows NIC configuration independently of MANA candidate status."
+      },
+      "name": "AcceleratedNetworkingExplanation"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "Resources\n| where type =~ 'microsoft.compute/virtualmachines'\n| where '{ResourceGroup:label}' == 'All' or resourceGroup in~ ({ResourceGroup})\n| where '{VirtualMachine:label}' == 'All' or id in~ ({VirtualMachine})\n| extend SourceSize=tostring(properties.hardwareProfile.vmSize), OSType=tostring(properties.storageProfile.osDisk.osType), GuestOSName=tostring(properties.extended.instanceView.osName), GuestOSVersion=tostring(properties.extended.instanceView.osVersion), ImagePublisher=tostring(properties.storageProfile.imageReference.publisher), ImageOffer=tostring(properties.storageProfile.imageReference.offer), ImageSku=tostring(properties.storageProfile.imageReference.sku), ImageVersion=tostring(properties.storageProfile.imageReference.version), ImageId=tostring(properties.storageProfile.imageReference.id)\n| extend MANACandidateStatus=case(tolower(SourceSize) matches regex @'^standard_(d[0-9]+(s|d|ds|ls|lds)?_v5|e[0-9]+(s|d|ds)?_v5|d[0-9]+(ps|pds|pls|plds)_v6|e[0-9]+(ps|pds)_v6)$', 'MANA candidate now', tolower(SourceSize) matches regex @'^standard_(d[0-9]+(s|d|ds)?_v4|e[0-9]+(s|d|ds)?_v4|[de][0-9]+s?_v3|b[0-9]+s_v2|ds?[0-9]+_v2|a[0-9]+m?_v2|f[0-9]+(s(_v2)?)?|gs?[0-9]+|l[0-9]+s)$', 'Timeline under review', 'UNKNOWN')\n| extend SourceOSImage=case(not(isempty(ImagePublisher) and isempty(ImageOffer) and isempty(ImageSku)), strcat(ImagePublisher, ':', ImageOffer, ':', ImageSku, ':', ImageVersion), not(isempty(GuestOSName)), strcat(GuestOSName, ' ', GuestOSVersion), not(isempty(ImageId)), ImageId, OSType), ImageText=tolower(strcat(ImagePublisher, ' ', ImageOffer, ' ', ImageSku, ' ', ImageVersion, ' ', GuestOSName, ' ', GuestOSVersion))\n| extend OSMetadataAvailable=not(isempty(ImagePublisher) and isempty(ImageOffer) and isempty(ImageSku) and isempty(GuestOSName) and isempty(GuestOSVersion))\n| extend MANAOSSupported=case(ImageText matches regex @'windows.?server.{0,30}(2016|2019|2022|2025)', 'TRUE', ImageText matches regex @'windows.{0,15}11', 'TRUE', ImageText matches regex @'(azure.?linux|cbl.?mariner).{0,30}(3|4)([._ -]0)?', 'TRUE', ImageText matches regex @'(alma|almalinux).{0,30}(9[._ -]6|10[._ -]0)', 'TRUE', ImageText matches regex @'debian.{0,30}(12|13)', 'TRUE', ImageText matches regex @'(oracle.?linux).{0,40}(uek.{0,5}(7|8)|9([._ -][0-9]+)?|10([._ -][0-9]+)?)', 'TRUE', ImageText matches regex @'rocky.{0,30}(9[._ -]6|10[._ -]0)', 'TRUE', ImageText matches regex @'(rhel|red.?hat).{0,30}(9[._ -]6|10[._ -]0)', 'TRUE', ImageText matches regex @'(sles|suse).{0,30}(15.{0,10}sp[._ -]?(5|6|7)|16)', 'TRUE', ImageText matches regex @'ubuntu.{0,30}(22[._ -]04|24[._ -]04)', 'TRUE', not(OSMetadataAvailable), 'UNKNOWN', 'FALSE')\n| where MANAOSSupported == 'TRUE'\n| extend VMId=tolower(id), ExpectedNICCount=array_length(properties.networkProfile.networkInterfaces)\n| join kind=leftouter (\n    Resources\n    | where type =~ 'microsoft.network/networkinterfaces'\n    | extend VMId=tolower(tostring(properties.virtualMachine.id)), AcceleratedNetworking=tobool(properties.enableAcceleratedNetworking)\n    | where isnotempty(VMId)\n    | summarize EnabledNICs=countif(AcceleratedNetworking == true), KnownNICs=countif(isnotnull(AcceleratedNetworking)) by VMId\n) on VMId\n| extend AcceleratedNetworking=case(coalesce(EnabledNICs, 0) > 0, 'Enabled', coalesce(ExpectedNICCount, 0) > 0 and coalesce(KnownNICs, 0) == ExpectedNICCount, 'Disabled', 'UNKNOWN')\n| extend RequiresAction=MANACandidateStatus == 'MANA candidate now' and (coalesce(EnabledNICs, 0) > 0 or isnull(ExpectedNICCount) or ExpectedNICCount == 0 or coalesce(KnownNICs, 0) != ExpectedNICCount)\n| project VMName=name, SubscriptionID=subscriptionId, ResourceGroup=resourceGroup, SourceSize, MANAOSSupported, RequiresAction=iff(RequiresAction, 'TRUE', 'FALSE'), MANACandidateStatus, AcceleratedNetworking, OSType, GuestOSName, GuestOSVersion, SourceOSImage, ResourceId=id\n| order by ResourceGroup asc, VMName asc",
+        "size": 0,
+        "title": "MANA Support Status",
+        "noDataMessage": "No virtual machines with a MANA-supported operating system match the selected scope.",
+        "showExportToExcel": true,
+        "queryType": 1,
+        "resourceType": "microsoft.resources/tenants",
+        "crossComponentResources": [
+          "value::tenant"
+        ],
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "RequiresAction",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "TRUE",
+                    "representation": "warning",
+                    "text": "TRUE"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "FALSE",
+                    "representation": "success",
+                    "text": "FALSE"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "MANAOSSupported",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "icons",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "TRUE",
+                    "representation": "success",
+                    "text": "TRUE"
+                  }
+                ]
+              }
+            },
+            {
+              "columnMatch": "ResourceId",
+              "formatter": 13,
+              "formatOptions": {
+                "linkTarget": "Resource",
+                "showIcon": true
+              }
+            }
+          ],
+          "rowLimit": 5000,
+          "filter": true,
+          "labelSettings": [
+            {
+              "columnId": "AcceleratedNetworking",
+              "label": "Accelerated Networking"
+            },
+            {
+              "columnId": "ResourceId",
+              "label": "VM resource"
+            }
+          ]
+        }
+      },
+      "name": "MANAOSSupportStatus"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
