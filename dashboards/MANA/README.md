@@ -25,6 +25,7 @@ The table includes VM identity, size, MANA candidate status, OS/image details, A
 
 - **Subscriptions** populates the resource-group and VM selectors.
 - **Resource groups** and **Virtual machines** filter the status table.
+- **Show only compatible images** is a Yes/No toggle. **Yes** (default) retains only `MANAOSSupported=TRUE` rows, preserving the previous view. **No** also shows `FALSE` and `UNKNOWN` images within the selected scope. Compatibility is based on OS/image metadata, not verified guest drivers.
 - **Target region** is currently informational; it is not used by the status query and does not check regional availability.
 
 **Scope limitation:** The main status query uses tenant scope, rather than the Subscription parameter. With resource groups and VMs set to **All**, it can include VMs from all accessible subscriptions. Selecting a resource group filters by its name, which may be shared across subscriptions. Select explicit VMs when an exact scope is required.
@@ -34,7 +35,7 @@ The table includes VM identity, size, MANA candidate status, OS/image details, A
 | Field | Meaning |
 |-------|---------|
 | `MANACandidateStatus` | A static VM-family classification: **MANA candidate now**, **Timeline under review**, or **UNKNOWN**. It does not detect host hardware. |
-| `MANAOSSupported` | A match against OS/image metadata patterns in the query, not an inspection of installed drivers or kernel capabilities. Only rows matching `TRUE` are displayed. |
+| `MANAOSSupported` | A match against OS/image metadata patterns in the query, not an inspection of installed drivers or kernel capabilities. Only `TRUE` rows are displayed when **Show only compatible images** is **Yes**; **No** also includes `FALSE` and `UNKNOWN`. |
 | `AcceleratedNetworking` | **Enabled** if any NIC reports AN enabled; **Disabled** only when all expected NICs are visible and explicitly disabled; otherwise **UNKNOWN**. |
 | `RequiresAction` | **TRUE** for a current MANA candidate with AN enabled or incomplete NIC evidence. **FALSE** means no action under this rule, not verified readiness. |
 
@@ -42,7 +43,7 @@ Current candidate families are Dv5/Dsv5/Ddv5/Ddsv5/Dlsv5/Dldsv5, Ev5/Esv5/Edv5/E
 
 Families marked **Timeline under review** are Dv4/Dsv4/Ddv4/Ddsv4, Ev4/Esv4/Edv4/Edsv4, Dv3/Dsv3/Ev3/Esv3, Bsv2, Dv2/Dsv2/Av2, F/Fs/Fsv2, G/GS, and Ls. Other sizes are **UNKNOWN**, not necessarily unsupported.
 
-The OS patterns recognize specific Windows, Azure Linux/CBL-Mariner, AlmaLinux, Debian, Oracle Linux, Rocky Linux, RHEL, SUSE, and Ubuntu versions. These are static heuristics: missing metadata, custom images, backports, or newer releases can be missed. Excluded VMs are not assessed by this view; an empty table does not prove fleet readiness. Review the current Microsoft support documentation and the actual guest before making changes.
+The OS patterns recognize specific Windows, Azure Linux/CBL-Mariner, AlmaLinux, Debian, Oracle Linux, Rocky Linux, RHEL, SUSE, and Ubuntu versions. These are static heuristics: missing metadata, custom images, backports, or newer releases can be missed. Set **Show only compatible images** to **No** to review those rows too. An empty table does not prove fleet readiness. Review the current Microsoft support documentation and the actual guest before making changes.
 
 ## Next steps: check the OS, host, and traffic
 
