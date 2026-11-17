@@ -91,19 +91,6 @@
               "additionalResourceOptions": []
             },
             "jsonData": "[{\"value\":\"true\",\"label\":\"Yes\"},{\"value\":\"false\",\"label\":\"No\"}]"
-          },
-          {
-            "id": "65b85676-a6c5-4264-9cd2-e31dfca07752",
-            "version": "KqlParameterItem/1.0",
-            "name": "TargetRegion",
-            "label": "Target region",
-            "type": 2,
-            "isRequired": true,
-            "value": "centralus",
-            "typeSettings": {
-              "additionalResourceOptions": []
-            },
-            "jsonData": "[{\"value\":\"australiacentral\",\"label\":\"Australia Central\"},{\"value\":\"australiaeast\",\"label\":\"Australia East\"},{\"value\":\"australiasoutheast\",\"label\":\"Australia Southeast\"},{\"value\":\"brazilsouth\",\"label\":\"Brazil South\"},{\"value\":\"canadacentral\",\"label\":\"Canada Central\"},{\"value\":\"canadaeast\",\"label\":\"Canada East\"},{\"value\":\"centralindia\",\"label\":\"Central India\"},{\"value\":\"centralus\",\"label\":\"Central US\"},{\"value\":\"eastasia\",\"label\":\"East Asia\"},{\"value\":\"eastus\",\"label\":\"East US\"},{\"value\":\"eastus2\",\"label\":\"East US 2\"},{\"value\":\"francecentral\",\"label\":\"France Central\"},{\"value\":\"germanywestcentral\",\"label\":\"Germany West Central\"},{\"value\":\"japaneast\",\"label\":\"Japan East\"},{\"value\":\"japanwest\",\"label\":\"Japan West\"},{\"value\":\"koreacentral\",\"label\":\"Korea Central\"},{\"value\":\"northcentralus\",\"label\":\"North Central US\"},{\"value\":\"northeurope\",\"label\":\"North Europe\"},{\"value\":\"norwayeast\",\"label\":\"Norway East\"},{\"value\":\"southafricanorth\",\"label\":\"South Africa North\"},{\"value\":\"southcentralus\",\"label\":\"South Central US\"},{\"value\":\"southeastasia\",\"label\":\"Southeast Asia\"},{\"value\":\"southindia\",\"label\":\"South India\"},{\"value\":\"swedencentral\",\"label\":\"Sweden Central\"},{\"value\":\"switzerlandnorth\",\"label\":\"Switzerland North\"},{\"value\":\"uaenorth\",\"label\":\"UAE North\"},{\"value\":\"uksouth\",\"label\":\"UK South\"},{\"value\":\"ukwest\",\"label\":\"UK West\"},{\"value\":\"westcentralus\",\"label\":\"West Central US\"},{\"value\":\"westeurope\",\"label\":\"West Europe\"},{\"value\":\"westindia\",\"label\":\"West India\"},{\"value\":\"westus\",\"label\":\"West US\"},{\"value\":\"westus2\",\"label\":\"West US 2\"},{\"value\":\"westus3\",\"label\":\"West US 3\"}]"
           }
         ],
         "style": "pills",

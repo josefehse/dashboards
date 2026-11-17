@@ -26,7 +26,6 @@ The table includes VM identity, size, MANA candidate status, OS/image details, A
 - **Subscriptions** populates the resource-group and VM selectors.
 - **Resource groups** and **Virtual machines** filter the status table.
 - **Show only compatible images** is a Yes/No toggle. **Yes** (default) retains only `MANAOSSupported=TRUE` rows, preserving the previous view. **No** also shows `FALSE` and `UNKNOWN` images within the selected scope. Compatibility is based on OS/image metadata, not verified guest drivers.
-- **Target region** is currently informational; it is not used by the status query and does not check regional availability.
 
 **Scope limitation:** The main status query uses tenant scope, rather than the Subscription parameter. With resource groups and VMs set to **All**, it can include VMs from all accessible subscriptions. Selecting a resource group filters by its name, which may be shared across subscriptions. Select explicit VMs when an exact scope is required.
 
