@@ -1,0 +1,4 @@
+{
+  "topicEndpoint": "https://<topic-name>.<region>-1.eventgrid.azure.net/api/events",
+  "userAssignedIdentityClientId": null
+}
