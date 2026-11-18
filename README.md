@@ -12,6 +12,7 @@ A collection of Azure Workbooks, Grafana dashboards, and operational tools for m
 │   ├── entraID/
 │   ├── flowlog/
 │   ├── loadbalancers/
+│   ├── MANA/
 │   └── vnetsummary/
 └── tools/               # Operational scripts and CLI tools
     ├── AUM/             # Azure Update Manager pre-maintenance functions
@@ -33,6 +34,7 @@ A collection of Azure Workbooks, Grafana dashboards, and operational tools for m
 | [Entra ID Sign-in Analysis](dashboards/entraID/README.md) | Workbook / Grafana | Analyze sign-in patterns and track ADAL-to-MSAL migration |
 | [VNet Flow Log Analysis](dashboards/flowlog/README.md) | Azure Workbook | Analyze virtual network traffic flows and bandwidth usage |
 | [Load Balancer Configuration](dashboards/loadbalancers/README.md) | Azure Workbook | Inventory load balancers with backend pools and health probes |
+| [MANA Assessment](dashboards/MANA/README.md) | Azure Workbook | Identify MANA follow-up candidates and validate guest OS, host hardware, and accelerated traffic |
 | [Virtual Networks Summary](dashboards/vnetsummary/README.md) | Azure Workbook | List VNets and subnets with NSGs and route tables |
 
 ---
